@@ -9,38 +9,154 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UniversesRouteImport } from './routes/universes'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RunsRouteImport } from './routes/runs'
+import { Route as RunRouteImport } from './routes/run'
+import { Route as BrokersRouteImport } from './routes/brokers'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
 
+const UniversesRoute = UniversesRouteImport.update({
+  id: '/universes',
+  path: '/universes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunsRoute = RunsRouteImport.update({
+  id: '/runs',
+  path: '/runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunRoute = RunRouteImport.update({
+  id: '/run',
+  path: '/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrokersRoute = BrokersRouteImport.update({
+  id: '/brokers',
+  path: '/brokers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RunsRunIdRoute = RunsRunIdRouteImport.update({
+  id: '/$runId',
+  path: '/$runId',
+  getParentRoute: () => RunsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/brokers': typeof BrokersRoute
+  '/run': typeof RunRoute
+  '/runs': typeof RunsRouteWithChildren
+  '/settings': typeof SettingsRoute
+  '/universes': typeof UniversesRoute
+  '/runs/$runId': typeof RunsRunIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/brokers': typeof BrokersRoute
+  '/run': typeof RunRoute
+  '/runs': typeof RunsRouteWithChildren
+  '/settings': typeof SettingsRoute
+  '/universes': typeof UniversesRoute
+  '/runs/$runId': typeof RunsRunIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/brokers': typeof BrokersRoute
+  '/run': typeof RunRoute
+  '/runs': typeof RunsRouteWithChildren
+  '/settings': typeof SettingsRoute
+  '/universes': typeof UniversesRoute
+  '/runs/$runId': typeof RunsRunIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/brokers'
+    | '/run'
+    | '/runs'
+    | '/settings'
+    | '/universes'
+    | '/runs/$runId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/brokers'
+    | '/run'
+    | '/runs'
+    | '/settings'
+    | '/universes'
+    | '/runs/$runId'
+  id:
+    | '__root__'
+    | '/'
+    | '/brokers'
+    | '/run'
+    | '/runs'
+    | '/settings'
+    | '/universes'
+    | '/runs/$runId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BrokersRoute: typeof BrokersRoute
+  RunRoute: typeof RunRoute
+  RunsRoute: typeof RunsRouteWithChildren
+  SettingsRoute: typeof SettingsRoute
+  UniversesRoute: typeof UniversesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/universes': {
+      id: '/universes'
+      path: '/universes'
+      fullPath: '/universes'
+      preLoaderRoute: typeof UniversesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/runs': {
+      id: '/runs'
+      path: '/runs'
+      fullPath: '/runs'
+      preLoaderRoute: typeof RunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/run': {
+      id: '/run'
+      path: '/run'
+      fullPath: '/run'
+      preLoaderRoute: typeof RunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/brokers': {
+      id: '/brokers'
+      path: '/brokers'
+      fullPath: '/brokers'
+      preLoaderRoute: typeof BrokersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +164,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/runs/$runId': {
+      id: '/runs/$runId'
+      path: '/$runId'
+      fullPath: '/runs/$runId'
+      preLoaderRoute: typeof RunsRunIdRouteImport
+      parentRoute: typeof RunsRoute
+    }
   }
 }
 
+interface RunsRouteChildren {
+  RunsRunIdRoute: typeof RunsRunIdRoute
+}
+
+const RunsRouteChildren: RunsRouteChildren = {
+  RunsRunIdRoute: RunsRunIdRoute,
+}
+
+const RunsRouteWithChildren = RunsRoute._addFileChildren(RunsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BrokersRoute: BrokersRoute,
+  RunRoute: RunRoute,
+  RunsRoute: RunsRouteWithChildren,
+  SettingsRoute: SettingsRoute,
+  UniversesRoute: UniversesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
