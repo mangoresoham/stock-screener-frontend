@@ -11,7 +11,7 @@ import { ResultsTable } from "@/components/results-table";
 import { api, ApiError, type RunStatus } from "@/lib/api";
 import { fmtDateTime } from "@/lib/format";
 
-export const Route = createFileRoute("/runs/$runId")({
+export const Route = createFileRoute("/runs_/$runId")({
   head: ({ params }) => ({
     meta: [
       { title: `Run ${params.runId.slice(0, 8)} — Stock Screener` },
@@ -124,7 +124,7 @@ function RunDetail() {
 function Field({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
       <span className={`font-mono ${warn ? "text-warn" : ""}`}>{value}</span>
     </div>
   );

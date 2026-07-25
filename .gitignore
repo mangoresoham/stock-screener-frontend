@@ -16,6 +16,18 @@ dist-ssr
 .nitro
 *.local
 
+# This project uses bun (bun.lock is the real lockfile, tracked in git) -- ignore the
+# other package managers' lockfiles so an accidental `npm install`/`yarn install` (e.g.
+# from a tool that doesn't know to use bun) doesn't leave a conflicting lockfile to commit.
+package-lock.json
+yarn.lock
+
+# Env files may carry VITE_API_KEY or a real backend URL -- never commit secrets even in
+# a frontend-only repo. (VITE_-prefixed values still end up in the built JS bundle, but
+# the source .env file itself shouldn't be in version control regardless.)
+.env
+.env.*
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

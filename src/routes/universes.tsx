@@ -135,10 +135,10 @@ function UniversesPage() {
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Name</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Members</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Created</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Hash</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Name</th>
+                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs">Members</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Created</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Hash</th>
               </tr>
             </thead>
             <tbody>

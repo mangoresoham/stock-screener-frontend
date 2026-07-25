@@ -47,7 +47,7 @@ export function PassFailBadge({ passed }: { passed: boolean | undefined }) {
   return (
     <span
       className={cn(
-        "inline-flex w-14 justify-center rounded border px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider",
+        "inline-flex w-14 justify-center rounded border px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider",
         passed
           ? "bg-pass/15 text-pass border-pass/40"
           : "bg-fail/10 text-fail border-fail/30",
@@ -62,7 +62,7 @@ export function CrossoverBadge({ kind }: { kind: "buy" | "exit" }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider",
+        "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider",
         kind === "buy"
           ? "bg-signal/20 text-signal border-signal/50"
           : "bg-warn/20 text-warn border-warn/50",

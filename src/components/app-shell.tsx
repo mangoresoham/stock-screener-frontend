@@ -9,6 +9,7 @@ const nav = [
   { to: "/universes", label: "Universes" },
   { to: "/runs", label: "Past Runs" },
   { to: "/brokers", label: "Brokers" },
+  { to: "/help", label: "How to Use" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -64,9 +65,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function BrokerStrip({ brokers }: { brokers: { name: string; authenticated: boolean }[] }) {
   if (brokers.length === 0)
-    return <span className="text-[10px] text-muted-foreground uppercase tracking-wide">no broker data</span>;
+    return <span className="text-xs text-muted-foreground uppercase tracking-wide">no broker data</span>;
   return (
-    <div className="flex items-center gap-2 text-[11px] font-mono">
+    <div className="flex items-center gap-2 text-xs">
       {brokers.map((b) => (
         <span key={b.name} className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent/40">
           <span

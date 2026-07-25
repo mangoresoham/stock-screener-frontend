@@ -43,8 +43,12 @@ export type ResultRow = Record<string, unknown> & {
   Exit_Crossover?: boolean;
 };
 
+// The backend sends run_id as a JSON integer (Pydantic `run_id: int`), not a string --
+// keep this accurate rather than coercing at every call site. Route params (URL segments)
+// are always strings regardless, so `String(run.run_id)` is used wherever one is needed
+// for navigation/display-as-text.
 export interface ScreenRun {
-  run_id: string;
+  run_id: number;
   status: RunStatus;
   mode: ScreenMode;
   broker: string;
@@ -56,6 +60,21 @@ export interface ScreenRun {
   error: string | null;
   results: ResultRow[];
   passed_tickers: string[];
+}
+
+// GET /screens (the "Past Runs" list) -- run-level metadata only, no per-ticker results;
+// fetch ScreenRun (above) via getRun() for those.
+export interface ScreenRunSummary {
+  run_id: number;
+  status: RunStatus;
+  mode: ScreenMode;
+  broker: string;
+  universe: { id: number; name: string; member_count: number; created_at: string };
+  started_at: string;
+  finished_at: string | null;
+  data_start_at: string;
+  data_end_at: string;
+  error: string | null;
 }
 
 // ============================================================
@@ -148,6 +167,7 @@ export const api = {
   // Screens
   listModes: () => request<ModeInfo[]>("/screens/modes"),
   listIndicators: () => request<IndicatorInfo[]>("/screens/indicators"),
+  listRuns: () => request<ScreenRunSummary[]>("/screens"),
   runScreen: (body: RunScreenBody) =>
     request<ScreenRun>("/screens/run", { method: "POST", body: JSON.stringify(body) }),
   getRun: (runId: string) => request<ScreenRun>(`/screens/${encodeURIComponent(runId)}`),
@@ -177,31 +197,3 @@ export const api = {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 };
-
-// Track recent runs client-side (there's no backend list endpoint).
-const RECENT_KEY = "screener.recentRuns";
-export interface RecentRun {
-  run_id: string;
-  mode: string;
-  broker: string;
-  universe: string;
-  submitted_at: string;
-}
-export function recordRecentRun(r: RecentRun) {
-  if (typeof window === "undefined") return;
-  try {
-    const existing: RecentRun[] = JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? "[]");
-    const next = [r, ...existing.filter((x) => x.run_id !== r.run_id)].slice(0, 50);
-    window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-  } catch {
-    /* ignore */
-  }
-}
-export function getRecentRuns(): RecentRun[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? "[]");
-  } catch {
-    return [];
-  }
-}

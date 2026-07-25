@@ -48,10 +48,10 @@ function BrokersPage() {
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Status</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Broker</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Rate limit / min</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-[10px]"></th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Status</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Broker</th>
+                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs">Rate limit / min</th>
+                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs"></th>
               </tr>
             </thead>
             <tbody>
@@ -60,7 +60,7 @@ function BrokersPage() {
                   <td className="px-3 py-2">
                     <span className="inline-flex items-center gap-2">
                       <span className={cn("size-1.5 rounded-full", b.authenticated ? "bg-pass" : "bg-fail")} />
-                      <span className={cn("font-mono text-[10px] uppercase tracking-wide", b.authenticated ? "text-pass" : "text-fail")}>
+                      <span className={cn("font-mono text-xs uppercase tracking-wide", b.authenticated ? "text-pass" : "text-fail")}>
                         {b.authenticated ? "Authed" : "Not authed"}
                       </span>
                     </span>

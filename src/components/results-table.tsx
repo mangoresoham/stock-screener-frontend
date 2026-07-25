@@ -103,7 +103,7 @@ export function ResultsTable({ rows, mode }: { rows: ResultRow[]; mode: ScreenMo
           const err = r.Status?.toString().startsWith("Error");
           if (err) {
             return (
-              <span className="inline-flex rounded border border-fail/30 bg-fail/10 px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-fail">
+              <span className="inline-flex rounded border border-fail/30 bg-fail/10 px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider text-fail">
                 Err
               </span>
             );
@@ -200,41 +200,64 @@ export function ResultsTable({ rows, mode }: { rows: ResultRow[]; mode: ScreenMo
           {table.getRowModel().rows.length} rows
         </span>
       </div>
-      <div className="overflow-auto rounded border max-h-[70vh]">
+      {/* overflow-x only, deliberately no vertical cap/overflow here -- a nested
+          max-h + overflow-auto would give this table its own independent vertical
+          scrollbar on top of the page's, which is exactly the "two scrollbars" bad
+          UX this avoids. The page itself is the only vertical scroll container;
+          `sticky` below sticks relative to that. */}
+      <div className="overflow-x-auto overflow-y-visible rounded border">
         <table className="w-full text-xs">
           <thead className="sticky top-0 z-10 bg-sidebar/95 backdrop-blur">
-            {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="border-b">
-                {hg.headers.map((h) => {
-                  const canSort = h.column.getCanSort();
-                  const sort = h.column.getIsSorted();
-                  return (
-                    <th
-                      key={h.id}
-                      colSpan={h.colSpan}
-                      className={cn(
-                        "px-2 py-1.5 text-left font-medium text-muted-foreground uppercase tracking-wide text-[10px] whitespace-nowrap border-r last:border-r-0",
-                        canSort && "cursor-pointer select-none hover:text-foreground",
-                      )}
-                      onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                        {canSort ? (
-                          sort === "asc" ? (
-                            <ArrowUp className="size-3" />
-                          ) : sort === "desc" ? (
-                            <ArrowDown className="size-3" />
-                          ) : (
-                            <ArrowUpDown className="size-3 opacity-40" />
-                          )
-                        ) : null}
-                      </span>
-                    </th>
-                  );
-                })}
-              </tr>
-            ))}
+            {table.getHeaderGroups().map((hg, rowIndex) => {
+              // Two-row grouped header (Price/RSI/ATR/Comparative RS spanning their
+              // field sub-columns): row 0 is the group heading, the deepest row is
+              // the actual field labels. Previously both rows shared one identically
+              // tiny/muted style, so a group name like "RSI" looked no different from
+              // the "Stock"/"Nifty" labels beneath it -- no real heading hierarchy.
+              const isGroupRow = rowIndex === 0;
+              return (
+                <tr key={hg.id} className={isGroupRow ? undefined : "border-b"}>
+                  {hg.headers.map((h) => {
+                    if (h.isPlaceholder) {
+                      // An ungrouped column's (Pass/Ticker/Signal/Status) slot in the
+                      // group row -- left blank with no divider below, so its real
+                      // header (rendered one row down) reads as a single unbroken
+                      // heading instead of looking like a group label got cut off.
+                      return <th key={h.id} colSpan={h.colSpan} className="border-r last:border-r-0" />;
+                    }
+                    const canSort = h.column.getCanSort();
+                    const sort = h.column.getIsSorted();
+                    return (
+                      <th
+                        key={h.id}
+                        colSpan={h.colSpan}
+                        className={cn(
+                          "text-left whitespace-nowrap border-r last:border-r-0",
+                          isGroupRow
+                            ? "px-2 py-1 text-xs font-semibold text-foreground tracking-wide border-b border-border/70"
+                            : "px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wide text-xs",
+                          canSort && "cursor-pointer select-none hover:text-foreground",
+                        )}
+                        onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {flexRender(h.column.columnDef.header, h.getContext())}
+                          {canSort ? (
+                            sort === "asc" ? (
+                              <ArrowUp className="size-3" />
+                            ) : sort === "desc" ? (
+                              <ArrowDown className="size-3" />
+                            ) : (
+                              <ArrowUpDown className="size-3 opacity-40" />
+                            )
+                          ) : null}
+                        </span>
+                      </th>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => {

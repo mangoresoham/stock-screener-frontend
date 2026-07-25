@@ -9,32 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UniversesRouteImport } from './routes/universes'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as RunsRouteImport } from './routes/runs'
-import { Route as RunRouteImport } from './routes/run'
-import { Route as BrokersRouteImport } from './routes/brokers'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
+import { Route as BrokersRouteImport } from './routes/brokers'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as RunRouteImport } from './routes/run'
+import { Route as RunsRouteImport } from './routes/runs'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as UniversesRouteImport } from './routes/universes'
+import { Route as RunsRunIdRouteImport } from './routes/runs_.$runId'
 
-const UniversesRoute = UniversesRouteImport.update({
-  id: '/universes',
-  path: '/universes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RunsRoute = RunsRouteImport.update({
-  id: '/runs',
-  path: '/runs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RunRoute = RunRouteImport.update({
-  id: '/run',
-  path: '/run',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrokersRoute = BrokersRouteImport.update({
@@ -42,22 +28,43 @@ const BrokersRoute = BrokersRouteImport.update({
   path: '/brokers',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunRoute = RunRouteImport.update({
+  id: '/run',
+  path: '/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunsRoute = RunsRouteImport.update({
+  id: '/runs',
+  path: '/runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UniversesRoute = UniversesRouteImport.update({
+  id: '/universes',
+  path: '/universes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RunsRunIdRoute = RunsRunIdRouteImport.update({
-  id: '/$runId',
-  path: '/$runId',
-  getParentRoute: () => RunsRoute,
+  id: '/runs_/$runId',
+  path: '/runs/$runId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/brokers': typeof BrokersRoute
+  '/help': typeof HelpRoute
   '/run': typeof RunRoute
-  '/runs': typeof RunsRouteWithChildren
+  '/runs': typeof RunsRoute
   '/settings': typeof SettingsRoute
   '/universes': typeof UniversesRoute
   '/runs/$runId': typeof RunsRunIdRoute
@@ -65,8 +72,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/brokers': typeof BrokersRoute
+  '/help': typeof HelpRoute
   '/run': typeof RunRoute
-  '/runs': typeof RunsRouteWithChildren
+  '/runs': typeof RunsRoute
   '/settings': typeof SettingsRoute
   '/universes': typeof UniversesRoute
   '/runs/$runId': typeof RunsRunIdRoute
@@ -75,17 +83,19 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/brokers': typeof BrokersRoute
+  '/help': typeof HelpRoute
   '/run': typeof RunRoute
-  '/runs': typeof RunsRouteWithChildren
+  '/runs': typeof RunsRoute
   '/settings': typeof SettingsRoute
   '/universes': typeof UniversesRoute
-  '/runs/$runId': typeof RunsRunIdRoute
+  '/runs_/$runId': typeof RunsRunIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/brokers'
+    | '/help'
     | '/run'
     | '/runs'
     | '/settings'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/brokers'
+    | '/help'
     | '/run'
     | '/runs'
     | '/settings'
@@ -104,50 +115,32 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/brokers'
+    | '/help'
     | '/run'
     | '/runs'
     | '/settings'
     | '/universes'
-    | '/runs/$runId'
+    | '/runs_/$runId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrokersRoute: typeof BrokersRoute
+  HelpRoute: typeof HelpRoute
   RunRoute: typeof RunRoute
-  RunsRoute: typeof RunsRouteWithChildren
+  RunsRoute: typeof RunsRoute
   SettingsRoute: typeof SettingsRoute
   UniversesRoute: typeof UniversesRoute
+  RunsRunIdRoute: typeof RunsRunIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/universes': {
-      id: '/universes'
-      path: '/universes'
-      fullPath: '/universes'
-      preLoaderRoute: typeof UniversesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/runs': {
-      id: '/runs'
-      path: '/runs'
-      fullPath: '/runs'
-      preLoaderRoute: typeof RunsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/run': {
-      id: '/run'
-      path: '/run'
-      fullPath: '/run'
-      preLoaderRoute: typeof RunRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/brokers': {
@@ -157,41 +150,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrokersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/runs/$runId': {
-      id: '/runs/$runId'
-      path: '/$runId'
+    '/run': {
+      id: '/run'
+      path: '/run'
+      fullPath: '/run'
+      preLoaderRoute: typeof RunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/runs': {
+      id: '/runs'
+      path: '/runs'
+      fullPath: '/runs'
+      preLoaderRoute: typeof RunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/universes': {
+      id: '/universes'
+      path: '/universes'
+      fullPath: '/universes'
+      preLoaderRoute: typeof UniversesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/runs_/$runId': {
+      id: '/runs_/$runId'
+      path: '/runs/$runId'
       fullPath: '/runs/$runId'
       preLoaderRoute: typeof RunsRunIdRouteImport
-      parentRoute: typeof RunsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface RunsRouteChildren {
-  RunsRunIdRoute: typeof RunsRunIdRoute
-}
-
-const RunsRouteChildren: RunsRouteChildren = {
-  RunsRunIdRoute: RunsRunIdRoute,
-}
-
-const RunsRouteWithChildren = RunsRoute._addFileChildren(RunsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrokersRoute: BrokersRoute,
+  HelpRoute: HelpRoute,
   RunRoute: RunRoute,
-  RunsRoute: RunsRouteWithChildren,
+  RunsRoute: RunsRoute,
   SettingsRoute: SettingsRoute,
   UniversesRoute: UniversesRoute,
+  RunsRunIdRoute: RunsRunIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

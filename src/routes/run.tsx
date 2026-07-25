@@ -26,7 +26,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ConditionBuilder } from "@/components/condition-builder";
-import { api, ApiError, recordRecentRun, type ConditionNode } from "@/lib/api";
+import { api, ApiError, type ConditionNode } from "@/lib/api";
 
 export const Route = createFileRoute("/run")({
   head: () => ({
@@ -133,16 +133,9 @@ function RunPage() {
       }
       return api.runScreen(base as any);
     },
-    onSuccess: (run, v) => {
-      recordRecentRun({
-        run_id: run.run_id,
-        mode: run.mode,
-        broker: run.broker,
-        universe: v.source === "universe" ? (v.universe_name ?? "—") : `${(v.tickers_raw ?? "").split(/[\s,]+/).filter(Boolean).length} tickers`,
-        submitted_at: new Date().toISOString(),
-      });
-      toast.success("Run queued", { description: run.run_id });
-      navigate({ to: "/runs/$runId", params: { runId: run.run_id } });
+    onSuccess: (run) => {
+      toast.success("Run queued", { description: `Run #${run.run_id}` });
+      navigate({ to: "/runs/$runId", params: { runId: String(run.run_id) } });
     },
     onError: (err) => {
       const msg = err instanceof ApiError ? err.detail : (err as Error).message;
@@ -247,7 +240,7 @@ function RunPage() {
               )}
             />
             {modes.find((m) => m.mode === mode)?.description && (
-              <p className="text-[11px] text-muted-foreground">{modes.find((m) => m.mode === mode)?.description}</p>
+              <p className="text-xs text-muted-foreground">{modes.find((m) => m.mode === mode)?.description}</p>
             )}
           </div>
           <div className="space-y-2">
@@ -386,5 +379,5 @@ function RunPage() {
 function FieldError({ name, form }: { name: keyof FormValues; form: ReturnType<typeof useForm<FormValues>> }) {
   const msg = form.formState.errors[name]?.message as string | undefined;
   if (!msg) return null;
-  return <p className="text-[11px] text-fail">{msg}</p>;
+  return <p className="text-xs text-fail">{msg}</p>;
 }

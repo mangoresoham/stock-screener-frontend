@@ -12,7 +12,9 @@ import {
 import type { ConditionNode, ConditionLeaf, ConditionBranch, IndicatorInfo } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const OPS = [">", ">=", "<", "<=", "==", "!=", "crosses_above", "crosses_below"];
+// Must match src/screener/conditions.py's _OPERATORS allowlist exactly -- anything else
+// here would look selectable but fail with a 400 the moment it's actually submitted.
+const OPS = [">", ">=", "<", "<=", "==", "!="];
 
 function isLeaf(n: ConditionNode): n is ConditionLeaf {
   return "left" in n && "right" in n;
