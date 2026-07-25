@@ -12,4 +12,11 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Self-hosted on a plain Windows/Docker box, not Cloudflare -- overrides the
+  // cloudflare-module default so `bun run build` emits a standalone Node server
+  // at .output/server/index.mjs instead. (Only takes effect outside a Lovable
+  // build, where the preset is forced back to Cloudflare regardless.)
+  nitro: {
+    preset: "node-server",
+  },
 });
