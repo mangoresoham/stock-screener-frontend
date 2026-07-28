@@ -1,12 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
+import { KeyRound, RefreshCw } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api, ApiError } from "@/lib/api";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { api, ApiError, type Broker } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/brokers")({
@@ -21,9 +32,18 @@ export const Route = createFileRoute("/brokers")({
   component: BrokersPage,
 });
 
+// Only Breeze needs credentials entered/updated through this UI at all -- Angel
+// authenticates headlessly from a TOTP seed already in the backend's .env (no daily
+// step), and Yahoo needs no credentials whatsoever. The backend's PUT
+// /brokers/{name}/credentials endpoint is broker-agnostic in shape, but showing this
+// control for Angel/Yahoo would be misleading: nothing in either adapter reads from the
+// credential store, so saving one there would silently do nothing.
+const BROKERS_WITH_CREDENTIALS_UI = new Set(["breeze"]);
+
 function BrokersPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["brokers"], queryFn: api.listBrokers, refetchInterval: 15_000 });
+  const [credentialsFor, setCredentialsFor] = useState<Broker | null>(null);
 
   const reauth = useMutation({
     mutationFn: (name: string) => api.reauthBroker(name),
@@ -67,7 +87,18 @@ function BrokersPage() {
                   </td>
                   <td className="px-3 py-2 font-mono">{b.name}</td>
                   <td className="px-3 py-2 font-mono text-right tabular">{b.rate_limit_per_minute}</td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right space-x-2">
+                    {BROKERS_WITH_CREDENTIALS_UI.has(b.name) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => setCredentialsFor(b)}
+                      >
+                        <KeyRound className="size-3" />
+                        Credentials
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -91,6 +122,134 @@ function BrokersPage() {
           </table>
         </Card>
       </div>
+
+      <CredentialsDialog broker={credentialsFor} onOpenChange={(open) => !open && setCredentialsFor(null)} />
     </AppShell>
+  );
+}
+
+function CredentialsDialog({ broker, onOpenChange }: { broker: Broker | null; onOpenChange: (open: boolean) => void }) {
+  const qc = useQueryClient();
+  const [sessionToken, setSessionToken] = useState("");
+  const [showApiFields, setShowApiFields] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+
+  const submit = useMutation({
+    mutationFn: (credentials: Record<string, string>) => api.updateBrokerCredentials(broker!.name, credentials),
+    onSuccess: () => {
+      toast.success("Credentials saved and verified", { description: `${broker!.name} is now authenticated.` });
+      qc.invalidateQueries({ queryKey: ["brokers"] });
+      setSessionToken("");
+      setApiKey("");
+      setApiSecret("");
+      setShowApiFields(false);
+      onOpenChange(false);
+    },
+    onError: (e) => {
+      // Saved credentials are NOT rolled back on a failed verify (see routers/brokers.py) --
+      // if this was a bad paste, the error below (already containing the real login URL
+      // for Breeze) is what to act on; the value is safely stored either way.
+      toast.error("Saved, but verification failed", {
+        description: e instanceof ApiError ? e.detail : (e as Error).message,
+        duration: 20_000,
+      });
+    },
+  });
+
+  const handleSubmit = () => {
+    const credentials: Record<string, string> = {};
+    if (sessionToken.trim()) credentials.session_token = sessionToken.trim();
+    if (apiKey.trim()) credentials.api_key = apiKey.trim();
+    if (apiSecret.trim()) credentials.api_secret = apiSecret.trim();
+    if (Object.keys(credentials).length === 0) {
+      toast.error("Enter at least the session token");
+      return;
+    }
+    submit.mutate(credentials);
+  };
+
+  const sessionUpdatedAt = broker?.credentials_updated_at?.session_token;
+
+  return (
+    <Dialog open={broker !== null} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{broker?.name} credentials</DialogTitle>
+          <DialogDescription>
+            Breeze requires a fresh session token roughly once a day (ICICI's session expires at
+            midnight or 24h, whichever is first). Log into Breeze in your browser, then paste the
+            <code className="mx-1 rounded bg-muted px-1 py-0.5 font-mono text-[11px]">API_Session</code>
+            value from the address bar below.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="session_token" className="text-xs uppercase tracking-wide text-muted-foreground">
+              Session token
+            </Label>
+            <Input
+              id="session_token"
+              className="font-mono text-xs"
+              placeholder="e.g. 55710007"
+              value={sessionToken}
+              onChange={(e) => setSessionToken(e.target.value)}
+              autoFocus
+            />
+            {sessionUpdatedAt && (
+              <p className="text-[11px] text-muted-foreground">
+                Last updated {new Date(sessionUpdatedAt).toLocaleString()}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="text-[11px] text-muted-foreground underline underline-offset-2"
+            onClick={() => setShowApiFields((v) => !v)}
+          >
+            {showApiFields ? "Hide" : "Also update"} API key / secret (rarely needed)
+          </button>
+
+          {showApiFields && (
+            <div className="space-y-3 rounded-md border p-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="api_key" className="text-xs uppercase tracking-wide text-muted-foreground">
+                  API key
+                </Label>
+                <Input
+                  id="api_key"
+                  className="font-mono text-xs"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="api_secret" className="text-xs uppercase tracking-wide text-muted-foreground">
+                  API secret
+                </Label>
+                <Input
+                  id="api_secret"
+                  type="password"
+                  className="font-mono text-xs"
+                  value={apiSecret}
+                  onChange={(e) => setApiSecret(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleSubmit} disabled={submit.isPending}>
+            {submit.isPending ? "Saving & verifying…" : "Save & verify"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

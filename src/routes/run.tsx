@@ -85,7 +85,9 @@ function RunPage() {
   const universesQ = useQuery({ queryKey: ["universes"], queryFn: api.listUniverses });
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [customIndicators, setCustomIndicators] = useState<Array<{ name: string; period: number }>>([]);
+  const [customIndicators, setCustomIndicators] = useState<
+    Array<{ name: string; period: number; benchmark?: string }>
+  >([]);
   const [conditions, setConditions] = useState<ConditionNode | null>(null);
 
   const form = useForm<FormValues>({
@@ -124,6 +126,10 @@ function RunPage() {
       } as Record<string, unknown>;
       if (v.mode === "custom") {
         if (customIndicators.length === 0) throw new Error("Add at least one indicator");
+        const missingBenchmark = customIndicators.find(
+          (ind) => availableIndicators.find((x) => x.name === ind.name)?.needs_benchmark && !ind.benchmark?.trim(),
+        );
+        if (missingBenchmark) throw new Error(`${missingBenchmark.name} needs a benchmark ticker`);
         if (!conditions) throw new Error("Define at least one condition");
         Object.assign(base, {
           interval: v.interval,
@@ -147,7 +153,12 @@ function RunPage() {
     const first = availableIndicators[0];
     if (!first) return;
     const period = Number(first.default_config?.period ?? first.default_config?.cmo_period ?? 14);
-    setCustomIndicators((prev) => [...prev, { name: first.name, period }]);
+    // "NIFTY" as the initial default matches what every mode used to hardcode before
+    // this was configurable -- the backend now requires an explicit 'benchmark' key on
+    // any needs_benchmark indicator entry (and rejects one on any other), so it must be
+    // set here, not left for the backend to assume.
+    const benchmark = first.needs_benchmark ? "NIFTY" : undefined;
+    setCustomIndicators((prev) => [...prev, { name: first.name, period, benchmark }]);
   };
 
   const modes = useMemo(() => modesQ.data ?? [], [modesQ.data]);
@@ -272,14 +283,21 @@ function RunPage() {
               </Button>
             </div>
             <div className="space-y-2">
-              {customIndicators.map((ind, i) => (
+              {customIndicators.map((ind, i) => {
+                const needsBenchmark = availableIndicators.find((x) => x.name === ind.name)?.needs_benchmark;
+                return (
                 <div key={i} className="flex items-center gap-2">
                   <Select
                     value={ind.name}
                     onValueChange={(name) => {
                       const spec = availableIndicators.find((x) => x.name === name);
                       const period = Number(spec?.default_config?.period ?? spec?.default_config?.cmo_period ?? ind.period);
-                      setCustomIndicators((prev) => prev.map((p, j) => (j === i ? { name, period } : p)));
+                      // Rebuilt from scratch (not spread from the old entry) so a
+                      // leftover 'benchmark' from the previous indicator never survives
+                      // a switch to one that doesn't use it -- the backend rejects a
+                      // stray benchmark key just as strictly as a missing required one.
+                      const benchmark = spec?.needs_benchmark ? (ind.benchmark ?? "NIFTY") : undefined;
+                      setCustomIndicators((prev) => prev.map((p, j) => (j === i ? { name, period, benchmark } : p)));
                     }}
                   >
                     <SelectTrigger className="h-8 w-48 font-mono text-xs"><SelectValue /></SelectTrigger>
@@ -301,6 +319,19 @@ function RunPage() {
                       )
                     }
                   />
+                  {needsBenchmark && (
+                    <Input
+                      type="text"
+                      className="h-8 w-28 font-mono text-xs"
+                      placeholder="Benchmark (e.g. NIFTY)"
+                      value={ind.benchmark ?? ""}
+                      onChange={(e) =>
+                        setCustomIndicators((prev) =>
+                          prev.map((p, j) => (j === i ? { ...p, benchmark: e.target.value.toUpperCase() } : p)),
+                        )
+                      }
+                    />
+                  )}
                   <Button
                     type="button"
                     size="sm"
@@ -311,7 +342,8 @@ function RunPage() {
                     Remove
                   </Button>
                 </div>
-              ))}
+                );
+              })}
               {customIndicators.length === 0 && (
                 <p className="text-xs text-muted-foreground">No indicators added yet.</p>
               )}
