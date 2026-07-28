@@ -21,6 +21,9 @@ export interface Broker {
   name: string;
   authenticated: boolean;
   rate_limit_per_minute: number;
+  // key_name -> ISO timestamp of when it was last set via PUT /brokers/{name}/credentials
+  // (e.g. { session_token: "2026-07-28T21:00:00Z" }) -- never the actual value.
+  credentials_updated_at?: Record<string, string> | null;
 }
 
 export interface ModeInfo {
@@ -98,7 +101,10 @@ export interface RunScreenBase {
 export interface RunScreenCustom extends RunScreenBase {
   mode: "custom";
   interval: string;
-  indicators: Array<{ name: string; period?: number } & Record<string, unknown>>;
+  // `benchmark` is required for any indicator whose IndicatorInfo.needs_benchmark is
+  // true (currently only Comparative_RS) and must be omitted otherwise -- the backend
+  // (src/screener/custom_spec.py) validates the key set exactly, not just presence.
+  indicators: Array<{ name: string; period?: number; benchmark?: string }>;
   conditions: ConditionNode;
 }
 
@@ -172,12 +178,26 @@ export const api = {
     request<ScreenRun>("/screens/run", { method: "POST", body: JSON.stringify(body) }),
   getRun: (runId: string) => request<ScreenRun>(`/screens/${encodeURIComponent(runId)}`),
   exportRunUrl: (runId: string) => `${getApiBaseUrl()}/screens/${encodeURIComponent(runId)}/export`,
+  // Deletes one run's metadata + results only -- never touches fetched OHLCV/instrument
+  // data (see the backend's ScreenRunRepository.delete_run() docstring for why that's
+  // structurally guaranteed). No bulk endpoint on the backend; multi-delete just calls
+  // this once per selected id (see routes/runs.tsx).
+  deleteRun: (runId: number) => request<void>(`/screens/${runId}`, { method: "DELETE" }),
 
   // Brokers
   listBrokers: () => request<Broker[]>("/brokers"),
   getBroker: (name: string) => request<Broker>(`/brokers/${encodeURIComponent(name)}/status`),
   reauthBroker: (name: string) =>
     request<Broker>(`/brokers/${encodeURIComponent(name)}/reauth`, { method: "POST" }),
+  // Stores credential value(s) (encrypted at rest server-side) and immediately
+  // re-authenticates with them -- the response reflects whether they actually worked,
+  // not just "saved". Never send back the values themselves; Broker.credentials_updated_at
+  // only ever exposes *when* each key was last set.
+  updateBrokerCredentials: (name: string, credentials: Record<string, string>) =>
+    request<Broker>(`/brokers/${encodeURIComponent(name)}/credentials`, {
+      method: "PUT",
+      body: JSON.stringify({ credentials }),
+    }),
 
   // Utility: download blob (with API key header) then trigger browser save
   downloadExport: async (runId: string) => {
