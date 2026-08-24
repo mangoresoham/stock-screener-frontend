@@ -26,6 +26,13 @@ export interface Broker {
   credentials_updated_at?: Record<string, string> | null;
 }
 
+export interface CredentialHint {
+  key_name: string;
+  // A masked partial hint (e.g. "••••••••7sck") -- at most the last 4 characters, never
+  // the real value. See GET /brokers/{name}/credentials/{key_name}/reveal's docstring.
+  hint: string;
+}
+
 export interface ModeInfo {
   mode: ScreenMode;
   description: string;
@@ -198,6 +205,13 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ credentials }),
     }),
+  // On-demand only (never fetched passively) -- a masked partial hint for one already-
+  // stored credential, e.g. to confirm "yes, that's the key I meant to paste" without
+  // exposing it outright.
+  getCredentialHint: (name: string, keyName: string) =>
+    request<CredentialHint>(
+      `/brokers/${encodeURIComponent(name)}/credentials/${encodeURIComponent(keyName)}/reveal`
+    ),
 
   // Utility: download blob (with API key header) then trigger browser save
   downloadExport: async (runId: string) => {
