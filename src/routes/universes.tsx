@@ -132,6 +132,7 @@ function UniversesPage() {
           <div className="border-b px-4 py-2 text-xs uppercase tracking-wide text-muted-foreground">
             Saved universes
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr>
@@ -161,6 +162,7 @@ function UniversesPage() {
               )}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
     </AppShell>

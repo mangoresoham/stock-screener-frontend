@@ -224,7 +224,7 @@ function RunPage() {
         </Card>
 
         {/* Mode + broker */}
-        <Card className="p-4 grid grid-cols-2 gap-3">
+        <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mode</Label>
             <Controller
@@ -286,7 +286,7 @@ function RunPage() {
               {customIndicators.map((ind, i) => {
                 const needsBenchmark = availableIndicators.find((x) => x.name === ind.name)?.needs_benchmark;
                 return (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="flex flex-wrap items-center gap-2">
                   <Select
                     value={ind.name}
                     onValueChange={(name) => {
@@ -378,7 +378,7 @@ function RunPage() {
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3">
-            <Card className="p-4 grid grid-cols-2 gap-3">
+            <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">Start</Label>
                 <Input type="datetime-local" className="h-9 font-mono text-xs" {...form.register("start_date")} />
