@@ -33,6 +33,13 @@ export interface CredentialHint {
   hint: string;
 }
 
+// Instance-level login (src/api/routers/auth.py) -- one credential set for the whole
+// deployment, not per-user accounts. See SessionStatus's backend docstring for why this
+// never carries a username/email: there's only ever one account.
+export interface SessionStatus {
+  authenticated: boolean;
+}
+
 export interface ModeInfo {
   mode: ScreenMode;
   description: string;
@@ -156,7 +163,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (init?.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const res = await fetch(`${getApiBaseUrl()}${path}`, { ...init, headers });
+  const res = await fetch(`${getApiBaseUrl()}${path}`, {
+    ...init,
+    headers,
+    // Required for the instance-login session cookie (httpOnly, set by POST /auth/login)
+    // to ever be sent back on subsequent requests -- without this, a cross-origin fetch()
+    // (frontend and API on different ports even on the same host) never attaches cookies
+    // at all, regardless of the cookie's own SameSite setting. Harmless when a session
+    // cookie doesn't exist yet (e.g. before first login) or when X-API-Key is what's
+    // actually authenticating this request instead.
+    credentials: "include",
+  });
   if (!res.ok) await parseError(res);
   if (res.status === 204) return undefined as T;
   const ct = res.headers.get("content-type") ?? "";
@@ -213,12 +230,30 @@ export const api = {
       `/brokers/${encodeURIComponent(name)}/credentials/${encodeURIComponent(keyName)}/reveal`
     ),
 
+  // Instance-level login
+  login: (username: string, password: string) =>
+    request<SessionStatus>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  logout: () => request<SessionStatus>("/auth/logout", { method: "POST" }),
+  me: () => request<SessionStatus>("/auth/me"),
+  // No input -- there's only one account, so there's nothing to type in; always
+  // resolves with the same generic message regardless of what actually happened
+  // server-side (see ForgotPasswordResponse's backend docstring).
+  forgotPassword: () => request<{ message: string }>("/auth/forgot-password", { method: "POST" }),
+  resetPassword: (token: string, newPassword: string) =>
+    request<SessionStatus>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, new_password: newPassword }),
+    }),
+
   // Utility: download blob (with API key header) then trigger browser save
   downloadExport: async (runId: string) => {
     const headers = new Headers();
     const key = getApiKey();
     if (key) headers.set("X-API-Key", key);
-    const res = await fetch(api.exportRunUrl(runId), { headers });
+    const res = await fetch(api.exportRunUrl(runId), { headers, credentials: "include" });
     if (!res.ok) await parseError(res);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);

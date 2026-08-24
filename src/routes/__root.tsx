@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { getCurrentTheme, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { AuthProvider } from "@/lib/auth";
 
 function NotFoundComponent() {
   return (
@@ -89,6 +90,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      // SVG first -- the app's own blue-diamond brand mark (matches the "◆" used
+      // throughout the UI), not the leftover Lovable icon. Browsers that support SVG
+      // favicons (all current ones) prefer this over the .ico fallback below.
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -130,8 +135,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster theme={theme} position="top-right" richColors closeButton />
+      <AuthProvider>
+        <Outlet />
+        <Toaster theme={theme} position="top-right" richColors closeButton />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
