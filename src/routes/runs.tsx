@@ -118,6 +118,7 @@ function RunsPage() {
           )}
         </div>
         <Card className="p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr>
@@ -187,6 +188,7 @@ function RunsPage() {
               )}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
 

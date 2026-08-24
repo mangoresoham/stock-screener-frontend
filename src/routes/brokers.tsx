@@ -104,6 +104,7 @@ function BrokersPage() {
       <div className="mx-auto max-w-4xl p-6 space-y-4">
         <h1 className="text-lg font-semibold tracking-tight">Brokers</h1>
         <Card className="p-0 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr>
@@ -159,6 +160,7 @@ function BrokersPage() {
               )}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
 
