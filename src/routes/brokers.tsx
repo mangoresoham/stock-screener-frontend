@@ -17,6 +17,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, ApiError, type Broker } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -247,62 +248,74 @@ function CredentialsDialog({ broker, onOpenChange }: { broker: Broker | null; on
     const isRevealing = revealHint.isPending && revealHint.variables === field.key;
     return (
       <div key={field.key} className="space-y-1.5">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
           <Label htmlFor={field.key} className="text-xs uppercase tracking-wide text-muted-foreground">
             {field.label}
           </Label>
+          {/* Badge is just a "there's a value here" signal; the timestamp it used to spell
+              out inline moved into this tooltip so a Set field costs zero permanent lines. */}
           {isSet && (
-            <span className="inline-flex items-center gap-1.5 shrink-0">
-              <span className="inline-flex items-center gap-1 text-[11px] text-pass">
-                <CheckCircle2 className="size-3" />
-                Set
-              </span>
-              {/* GET .../credentials/{key}/reveal is called only on click, never passively
-                  -- see routers/brokers.py's docstring for why this is a masked partial
-                  hint (last 4 chars at most) and not the real value. */}
-              <button
-                type="button"
-                title={hint ? "Hide hint" : "Show a masked hint of the saved value"}
-                className="text-muted-foreground hover:text-foreground disabled:opacity-50"
-                disabled={isRevealing}
-                onClick={() =>
-                  hint
-                    ? setHints((h) => {
-                        const { [field.key]: _drop, ...rest } = h;
-                        return rest;
-                      })
-                    : revealHint.mutate(field.key)
-                }
-              >
-                {isRevealing ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : hint ? (
-                  <EyeOff className="size-3" />
-                ) : (
-                  <Eye className="size-3" />
-                )}
-              </button>
-            </span>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-pass cursor-default">
+                    <CheckCircle2 className="size-3" />
+                    Set
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  Saved {new Date(updatedAt!).toLocaleString()}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
-        <Input
-          id={field.key}
-          type={field.type ?? "text"}
-          className="font-mono text-xs"
-          placeholder={isSet ? "•".repeat(16) : field.placeholder}
-          value={values[field.key] ?? ""}
-          onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
-          autoFocus={autoFocus}
-        />
-        {isSet && (
-          <p className="text-[11px] text-muted-foreground">
-            {hint && (
-              <>
-                Saved value ends in <span className="font-mono text-foreground">{hint}</span> ·{" "}
-              </>
+
+        <div className="relative">
+          <Input
+            id={field.key}
+            type={field.type ?? "text"}
+            className={cn("font-mono text-xs", isSet && "pr-8")}
+            placeholder={isSet ? (hint ? `ends in ${hint}` : "•".repeat(16)) : field.placeholder}
+            value={values[field.key] ?? ""}
+            onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+            autoFocus={autoFocus}
+          />
+          {/* GET .../credentials/{key}/reveal is called only on click, never passively --
+              see routers/brokers.py's docstring for why this is a masked partial hint (last
+              4 chars at most) and not the real value. Lives inside the input, matching the
+              conventional show/hide-password affordance position instead of floating by the
+              label -- and toggling it swaps the input's own placeholder text in place rather
+              than opening a separate caption line, so the field's height never jumps. */}
+          <button
+            type="button"
+            title={hint ? "Hide hint" : "Show a masked hint of the saved value"}
+            className={cn(
+              "absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50",
+              !isSet && "hidden",
             )}
-            Last updated {new Date(updatedAt!).toLocaleString()} — leave blank to keep it.
-          </p>
+            disabled={isRevealing}
+            onClick={() =>
+              hint
+                ? setHints((h) => {
+                    const { [field.key]: _drop, ...rest } = h;
+                    return rest;
+                  })
+                : revealHint.mutate(field.key)
+            }
+          >
+            {isRevealing ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : hint ? (
+              <EyeOff className="size-3" />
+            ) : (
+              <Eye className="size-3" />
+            )}
+          </button>
+        </div>
+
+        {isSet && (
+          <p className="text-[11px] text-muted-foreground">Leave blank to keep the saved value.</p>
         )}
       </div>
     );
