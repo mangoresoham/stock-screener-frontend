@@ -193,6 +193,10 @@ export const api = {
     if (name) fd.append("name", name);
     return request<Universe>("/universes/upload", { method: "POST", body: fd });
   },
+  // By id, not name -- a name is deliberately non-unique on the backend. Refuses with a
+  // 409 (surfaced via ApiError.detail) while any screen run still references this
+  // universe; never touches fetched OHLCV/instrument data either way.
+  deleteUniverse: (universeId: number | string) => request<void>(`/universes/${universeId}`, { method: "DELETE" }),
 
   // Screens
   listModes: () => request<ModeInfo[]>("/screens/modes"),

@@ -2,13 +2,23 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Trash2, Upload } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { api, ApiError } from "@/lib/api";
 import { fmtDateTime } from "@/lib/format";
 
@@ -63,6 +73,29 @@ function UniversesPage() {
       invalidate();
     },
     onError: (e) => toast.error("Upload failed", { description: e instanceof ApiError ? e.detail : (e as Error).message }),
+  });
+
+  // { id, name } rather than just the id -- the confirm dialog and the 409 case both
+  // want the name to reference, and the row is gone from `q.data` by the time an error
+  // toast would otherwise need to look it back up.
+  const [pendingDelete, setPendingDelete] = useState<{ id: string | number; name: string } | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string | number) => api.deleteUniverse(id),
+    onSuccess: () => {
+      toast.success("Universe deleted", { description: pendingDelete?.name });
+      setPendingDelete(null);
+      invalidate();
+    },
+    onError: (e) => {
+      setPendingDelete(null);
+      // A 409 here means screen runs still reference it -- ApiError.detail already
+      // names the run count and says what to do (delete those runs first).
+      toast.error("Delete failed", {
+        description: e instanceof ApiError ? e.detail : (e as Error).message,
+        duration: 15_000,
+      });
+    },
   });
 
   return (
@@ -140,14 +173,15 @@ function UniversesPage() {
                 <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs">Members</th>
                 <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Created</th>
                 <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Hash</th>
+                <th className="px-3 py-2 w-8"></th>
               </tr>
             </thead>
             <tbody>
               {q.isLoading && (
-                <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {q.error && (
-                <tr><td colSpan={4} className="p-6 text-center text-fail">{(q.error as Error).message}</td></tr>
+                <tr><td colSpan={5} className="p-6 text-center text-fail">{(q.error as Error).message}</td></tr>
               )}
               {(q.data ?? []).map((u) => (
                 <tr key={String(u.id)} className="border-t hover:bg-accent/40">
@@ -155,16 +189,54 @@ function UniversesPage() {
                   <td className="px-3 py-1.5 text-right font-mono tabular">{u.member_count}</td>
                   <td className="px-3 py-1.5 font-mono text-muted-foreground">{fmtDateTime(u.created_at)}</td>
                   <td className="px-3 py-1.5 font-mono text-muted-foreground truncate max-w-40">{u.content_hash?.slice(0, 12)}</td>
+                  <td className="px-3 py-1.5 text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-fail"
+                      onClick={() => setPendingDelete({ id: u.id, name: u.name })}
+                      aria-label={`Delete universe ${u.name}`}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </td>
                 </tr>
               ))}
               {q.data?.length === 0 && (
-                <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No universes yet.</td></tr>
+                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No universes yet.</td></tr>
               )}
             </tbody>
           </table>
           </div>
         </Card>
       </div>
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete universe "{pendingDelete?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the universe and its saved ticker list. It does{" "}
+              <strong>not</strong> delete any fetched stock (OHLCV) data — that stays cached
+              regardless. This can't be undone.
+              <br />
+              <br />
+              If any screen run still references this universe, deletion is refused — delete
+              those runs first (Past Runs).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-fail text-white hover:bg-fail/90"
+              disabled={deleteMutation.isPending}
+              onClick={() => pendingDelete && deleteMutation.mutate(pendingDelete.id)}
+            >
+              {deleteMutation.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
