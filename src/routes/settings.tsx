@@ -28,11 +28,16 @@ function SettingsPage() {
   const [base, setBase] = useState("");
   const [key, setKey] = useState("");
   const [theme, setThemeState] = useState<Theme>("dark");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     setBase(getApiBaseUrl());
-    setKey(getApiKey());
+    const initialKey = getApiKey();
+    setKey(initialKey);
     setThemeState(getCurrentTheme());
+    // Auto-expand if a key is already set, so it never reads as "did that not save?" on
+    // a later visit to this page.
+    if (initialKey) setShowAdvanced(true);
   }, []);
 
   const chooseTheme = (t: Theme) => {
@@ -98,13 +103,29 @@ function SettingsPage() {
               Default: <span className="font-mono">{defaults.envBase}</span>
             </p>
           </div>
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">API Key (X-API-Key)</Label>
-            <Input value={key} onChange={(e) => setKey(e.target.value)} type="password" className="font-mono text-xs" placeholder="optional" />
-            <p className="text-xs text-muted-foreground">
-              Sent unconditionally. Harmless if backend has no key configured.
-            </p>
+
+          <div>
+            <button
+              type="button"
+              className="text-xs text-muted-foreground underline underline-offset-2"
+              onClick={() => setShowAdvanced((v) => !v)}
+            >
+              {showAdvanced ? "Hide" : "Show"} advanced
+            </button>
           </div>
+
+          {showAdvanced && (
+            <div className="space-y-2 rounded-md border p-3">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">API Key (X-API-Key)</Label>
+              <Input value={key} onChange={(e) => setKey(e.target.value)} type="password" className="font-mono text-xs" placeholder="optional" />
+              <p className="text-xs text-muted-foreground">
+                Only needed for non-browser access (CLI/scripts) or to point this browser at a
+                differently-keyed backend — being logged in already authenticates the app itself.
+                Sent unconditionally when set; harmless if the backend has no key configured.
+              </p>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Button onClick={save}>Save</Button>
             <Button
