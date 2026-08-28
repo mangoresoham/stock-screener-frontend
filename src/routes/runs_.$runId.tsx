@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download, Square } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
@@ -23,8 +23,11 @@ export const Route = createFileRoute("/runs_/$runId")({
   component: RunDetail,
 });
 
+const TERMINAL_STATUSES: RunStatus[] = ["completed", "failed", "cancelled"];
+
 function RunDetail() {
   const { runId } = Route.useParams();
+  const qc = useQueryClient();
 
   const q = useQuery({
     queryKey: ["run", runId],
@@ -32,13 +35,13 @@ function RunDetail() {
     // Poll every 2.5s while queued/running; stop once terminal.
     refetchInterval: (query) => {
       const status = query.state.data?.status as RunStatus | undefined;
-      return status === "completed" || status === "failed" ? false : 2500;
+      return status && TERMINAL_STATUSES.includes(status) ? false : 2500;
     },
     refetchIntervalInBackground: false,
   });
 
   const run = q.data;
-  const isTerminal = run?.status === "completed" || run?.status === "failed";
+  const isTerminal = Boolean(run && TERMINAL_STATUSES.includes(run.status));
   const passedCount = run?.passed_tickers?.length ?? 0;
   const totalCount = run?.results?.length ?? run?.universe?.member_count ?? 0;
 
@@ -49,6 +52,19 @@ function RunDetail() {
       toast.error("Export failed", { description: e instanceof ApiError ? e.detail : (e as Error).message });
     }
   };
+
+  const cancelMutation = useMutation({
+    mutationFn: () => api.cancelRun(runId),
+    onSuccess: () => {
+      toast.success("Cancellation requested", {
+        description: "Stopping after any ticker fetch already in flight finishes.",
+      });
+      qc.invalidateQueries({ queryKey: ["run", runId] });
+    },
+    onError: (e) => {
+      toast.error("Cancel failed", { description: e instanceof ApiError ? e.detail : (e as Error).message });
+    },
+  });
 
   return (
     <AppShell>
@@ -85,6 +101,17 @@ function RunDetail() {
                     <Download className="size-4" /> Download Excel
                   </Button>
                 )}
+                {(run.status === "queued" || run.status === "running") && (
+                  <Button
+                    variant="outline"
+                    className="border-fail/40 text-fail hover:bg-fail/10"
+                    disabled={cancelMutation.isPending}
+                    onClick={() => cancelMutation.mutate()}
+                  >
+                    <Square className="size-4" />
+                    {cancelMutation.isPending ? "Cancelling…" : "Stop run"}
+                  </Button>
+                )}
               </div>
             </Card>
 
@@ -102,6 +129,12 @@ function RunDetail() {
               <Card className="p-4 border-fail/40 bg-fail/10">
                 <div className="text-xs uppercase tracking-wide text-fail mb-1">Error</div>
                 <div className="font-mono text-sm whitespace-pre-wrap">{run.error ?? "Unknown error"}</div>
+              </Card>
+            )}
+            {run.status === "cancelled" && (
+              <Card className="p-4 border-warn/40 bg-warn/10">
+                <div className="text-xs uppercase tracking-wide text-warn mb-1">Cancelled</div>
+                <div className="font-mono text-sm whitespace-pre-wrap">{run.error ?? "Stopped by user."}</div>
               </Card>
             )}
             {(run.status === "queued" || run.status === "running") && (

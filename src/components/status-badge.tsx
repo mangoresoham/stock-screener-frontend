@@ -22,6 +22,11 @@ const map: Record<RunStatus, { label: string; className: string; hint: string }>
     className: "bg-fail/15 text-fail border-fail/40",
     hint: "run errored",
   },
+  cancelled: {
+    label: "Cancelled",
+    className: "bg-warn/15 text-warn border-warn/40",
+    hint: "stopped by user",
+  },
 };
 
 export function StatusBadge({ status, showHint }: { status: RunStatus; showHint?: boolean }) {
