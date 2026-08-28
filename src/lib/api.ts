@@ -5,7 +5,7 @@ import { getApiBaseUrl, getApiKey } from "./config";
 // where the backend returns free-form indicator columns.
 // ============================================================
 
-export type RunStatus = "queued" | "running" | "completed" | "failed";
+export type RunStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export type ScreenMode = "outperforming" | "chandemo" | "custom" | string;
 
 export interface Universe {
@@ -206,6 +206,13 @@ export const api = {
     request<ScreenRun>("/screens/run", { method: "POST", body: JSON.stringify(body) }),
   getRun: (runId: string) => request<ScreenRun>(`/screens/${encodeURIComponent(runId)}`),
   exportRunUrl: (runId: string) => `${getApiBaseUrl()}/screens/${encodeURIComponent(runId)}/export`,
+  // Cooperative stop for a queued/running run -- see backend's cancel_screen_run()
+  // docstring for why this isn't instant (a ticker fetch already in flight still
+  // finishes). Status flips to "cancelled" once the worker notices, so callers should
+  // keep polling getRun() rather than trusting this response's (still queued/running)
+  // status.
+  cancelRun: (runId: string) =>
+    request<ScreenRunSummary>(`/screens/${encodeURIComponent(runId)}/cancel`, { method: "POST" }),
   // Deletes one run's metadata + results only -- never touches fetched OHLCV/instrument
   // data (see the backend's ScreenRunRepository.delete_run() docstring for why that's
   // structurally guaranteed). No bulk endpoint on the backend; multi-delete just calls

@@ -273,6 +273,8 @@ function RunPage() {
           </div>
         </Card>
 
+        <ModeCriteria mode={mode} />
+
         {/* Custom mode */}
         {mode === "custom" && (
           <Card className="p-4 space-y-3">
@@ -381,13 +383,30 @@ function RunPage() {
             <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">Start</Label>
-                <Input type="datetime-local" className="h-9 font-mono text-xs" {...form.register("start_date")} />
+                <Controller
+                  control={form.control}
+                  name="start_date"
+                  render={({ field }) => (
+                    <MarketCloseDateField value={field.value} onChange={field.onChange} />
+                  )}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">End</Label>
-                <Input type="datetime-local" className="h-9 font-mono text-xs" {...form.register("end_date")} />
+                <Controller
+                  control={form.control}
+                  name="end_date"
+                  render={({ field }) => (
+                    <MarketCloseDateField value={field.value} onChange={field.onChange} />
+                  )}
+                />
                 <FieldError name="end_date" form={form} />
               </div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Time defaults to 15:30 (NSE market close) as soon as you pick a date, so
+                the fetched candle reflects that day's close — edit it if you need a
+                different cutoff.
+              </p>
             </Card>
           </CollapsibleContent>
         </Collapsible>
@@ -408,8 +427,113 @@ function RunPage() {
   );
 }
 
+// NSE's regular session closes at 15:30 IST -- picking a date without a time here would
+// otherwise submit 00:00, which most brokers resolve to whatever bar happens to sit at
+// midnight (not the day's close), silently giving a different, unintended candle. Kept
+// as separate date/time inputs (not a single type="datetime-local") specifically so the
+// 15:30 default is always visibly pre-filled and immediately editable, rather than
+// relying on datetime-local's browser-dependent partial-fill behavior.
+const MARKET_CLOSE_TIME = "15:30";
+
+function MarketCloseDateField({
+  value,
+  onChange,
+}: {
+  value?: string; // "" | "YYYY-MM-DDTHH:mm" -- same format datetime-local produced, so submission logic is unchanged
+  onChange: (v: string) => void;
+}) {
+  const [datePart, timePartRaw] = (value ?? "").split("T");
+  const timePart = timePartRaw || MARKET_CLOSE_TIME;
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        type="date"
+        className="h-9 font-mono text-xs flex-1"
+        value={datePart ?? ""}
+        onChange={(e) => onChange(e.target.value ? `${e.target.value}T${timePart}` : "")}
+      />
+      <Input
+        type="time"
+        className="h-9 font-mono text-xs w-28"
+        value={timePart}
+        disabled={!datePart}
+        title="Defaults to NSE market close (15:30) -- editable"
+        onChange={(e) => onChange(datePart ? `${datePart}T${e.target.value}` : "")}
+      />
+    </div>
+  );
+}
+
 function FieldError({ name, form }: { name: keyof FormValues; form: ReturnType<typeof useForm<FormValues>> }) {
   const msg = form.formState.errors[name]?.message as string | undefined;
   if (!msg) return null;
   return <p className="text-xs text-fail">{msg}</p>;
+}
+
+// Mirrors the exact pass logic in the backend (src/screener/engine.py's
+// OUTPERFORMING_CONDITIONS / src/screener/chandemo.py's WATCH/BUY/EXIT, thresholds from
+// src/config.py's INDICATORS_CONFIG) -- kept here as plain text rather than fetched from
+// the API since these are fixed screening-logic constants, not per-deployment config the
+// backend exposes anywhere. Update this alongside "How to Use.txt" if either mode's
+// criteria or default thresholds ever change.
+function ModeCriteria({ mode }: { mode: string }) {
+  if (mode !== "outperforming" && mode !== "chandemo") return null;
+
+  return (
+    <Card className="p-4 space-y-2">
+      <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+        Pass criteria — {mode === "outperforming" ? "Outperforming" : "Chandemo"}
+      </Label>
+
+      {mode === "outperforming" ? (
+        <>
+          <p className="text-xs text-muted-foreground">
+            A stock passes only if all three hold, on the latest bar:
+          </p>
+          <ul className="text-xs space-y-1.5 list-disc pl-4">
+            <li>
+              <span className="font-mono">RSI Strength</span> — stock's 14-day RSI is
+              higher than the NIFTY 50's 14-day RSI.
+            </li>
+            <li>
+              <span className="font-mono">Volatility Floor</span> — stock's 10-day ATR%
+              is above 2.99%.
+            </li>
+            <li>
+              <span className="font-mono">Relative Strength Trend</span> — stock's
+              price-vs-NIFTY ratio is above its own 75-day average.
+            </li>
+          </ul>
+          <p className="text-xs text-muted-foreground pt-1">
+            <span className="font-mono">Crossover</span> = passed all three today but not
+            yesterday — a fresh signal, not one that's been sitting there for weeks.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            Momentum on two timeframes via CMO (Chande Momentum Oscillator, -100 to +100).
+            Three independent signals per stock — <span className="font-mono">Passed</span> means BUY specifically:
+          </p>
+          <ul className="text-xs space-y-1.5 list-disc pl-4">
+            <li><span className="font-mono">WATCH</span> — monthly CMO is 25 or higher.</li>
+            <li>
+              <span className="font-mono">BUY</span> (= Passed) — WATCH is true AND
+              weekly CMO is also 25 or higher.
+            </li>
+            <li>
+              <span className="font-mono">EXIT</span> — weekly CMO has dropped to -25 or
+              lower, checked independently of WATCH/BUY.
+            </li>
+          </ul>
+          <p className="text-xs text-muted-foreground pt-1">
+            <span className="font-mono">Crossover</span> /{" "}
+            <span className="font-mono">Exit Crossover</span> = BUY/EXIT just turned on
+            this week — not one that's been active for months.
+          </p>
+        </>
+      )}
+    </Card>
+  );
 }
