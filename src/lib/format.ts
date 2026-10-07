@@ -1,22 +1,10 @@
-import { format, parseISO } from "date-fns";
-
 // Always render absolute timestamps — recency matters in a finance tool and
-// "2 hours ago" hides whether data is still valid.
+// "2 hours ago" hides whether data is still valid. sv-SE locale formats as
+// "yyyy-MM-dd HH:mm:ss" in the viewer's local time.
 export function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
-  try {
-    return format(parseISO(iso), "yyyy-MM-dd HH:mm:ss");
-  } catch {
-    return iso;
-  }
-}
-export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  try {
-    return format(parseISO(iso), "yyyy-MM-dd");
-  } catch {
-    return iso;
-  }
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("sv-SE");
 }
 
 export function fmtNumber(v: unknown, opts: { digits?: number } = {}): string {
