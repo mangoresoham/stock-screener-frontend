@@ -19,6 +19,14 @@ import {
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, ApiError, type Broker } from "@/lib/api";
+import {
+  AUTH_DOT_CLASS,
+  AUTH_LABEL,
+  AUTH_TEXT_CLASS,
+  brokerAuthState,
+  brokerStatusText,
+  formatAgo,
+} from "@/lib/broker-status";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/brokers")({
@@ -116,14 +124,24 @@ function BrokersPage() {
               </tr>
             </thead>
             <tbody>
-              {(q.data ?? []).map((b) => (
+              {(q.data ?? []).map((b) => {
+                const state = brokerAuthState(b);
+                return (
                 <tr key={b.name} className="border-t">
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2" title={brokerStatusText(b)}>
                     <span className="inline-flex items-center gap-2">
-                      <span className={cn("size-1.5 rounded-full", b.authenticated ? "bg-pass" : "bg-fail")} />
-                      <span className={cn("font-mono text-xs uppercase tracking-wide", b.authenticated ? "text-pass" : "text-fail")}>
-                        {b.authenticated ? "Authed" : "Not authed"}
+                      <span className={cn("size-1.5 rounded-full", AUTH_DOT_CLASS[state])} />
+                      <span className={cn("font-mono text-xs uppercase tracking-wide", AUTH_TEXT_CLASS[state])}>
+                        {AUTH_LABEL[state]}
                       </span>
+                    </span>
+                    {/* Status is the last real login attempt, not a live check -- so say how old it is. */}
+                    <span className="block text-muted-foreground">
+                      {b.missing_credentials?.length
+                        ? `missing ${b.missing_credentials.join(", ")}`
+                        : b.last_auth_at
+                          ? `checked ${formatAgo(b.last_auth_at)}`
+                          : "no login attempted yet"}
                     </span>
                   </td>
                   <td className="px-3 py-2 font-mono">{b.name}</td>
@@ -152,7 +170,8 @@ function BrokersPage() {
                     </Button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {q.isLoading && (
                 <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
               )}

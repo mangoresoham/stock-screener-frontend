@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getApiKey } from "./config";
+import { getApiBaseUrl } from "./config";
 
 // ============================================================
 // Types (mirroring the backend OpenAPI contract). Kept intentionally loose
@@ -19,8 +19,14 @@ export interface Universe {
 
 export interface Broker {
   name: string;
-  authenticated: boolean;
-  rate_limit_per_minute: number;
+  // The auth fields describe the LAST REAL LOGIN ATTEMPT by any backend process (in practice
+  // the worker, whenever it fetches) -- not a live check. Always read `last_auth_at` with
+  // `authenticated`; see src/lib/broker-status.ts.
+  authenticated: boolean; // the last recorded attempt succeeded
+  last_auth_at?: string | null; // null = no attempt recorded yet
+  last_auth_error?: string | null; // the broker's message when the last attempt failed
+  missing_credentials?: string[]; // keys with nothing stored -- can't authenticate until set
+  rate_limit_per_minute: number | null;
   // key_name -> ISO timestamp of when it was last set via PUT /brokers/{name}/credentials
   // (e.g. { session_token: "2026-07-28T21:00:00Z" }) -- never the actual value.
   credentials_updated_at?: Record<string, string> | null;
@@ -157,8 +163,6 @@ async function parseError(res: Response): Promise<never> {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
-  const key = getApiKey();
-  if (key) headers.set("X-API-Key", key);
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
   if (init?.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -169,9 +173,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     // Required for the instance-login session cookie (httpOnly, set by POST /auth/login)
     // to ever be sent back on subsequent requests -- without this, a cross-origin fetch()
     // (frontend and API on different ports even on the same host) never attaches cookies
-    // at all, regardless of the cookie's own SameSite setting. Harmless when a session
-    // cookie doesn't exist yet (e.g. before first login) or when X-API-Key is what's
-    // actually authenticating this request instead.
+    // at all, regardless of the cookie's own SameSite setting. This cookie is the browser's
+    // only credential -- see src/lib/config.ts for why no X-API-Key is sent.
     credentials: "include",
   });
   if (!res.ok) await parseError(res);
@@ -259,12 +262,9 @@ export const api = {
       body: JSON.stringify({ token, new_password: newPassword }),
     }),
 
-  // Utility: download blob (with API key header) then trigger browser save
+  // Utility: download blob (authenticated by the session cookie) then trigger browser save
   downloadExport: async (runId: string) => {
-    const headers = new Headers();
-    const key = getApiKey();
-    if (key) headers.set("X-API-Key", key);
-    const res = await fetch(api.exportRunUrl(runId), { headers, credentials: "include" });
+    const res = await fetch(api.exportRunUrl(runId), { credentials: "include" });
     if (!res.ok) await parseError(res);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);

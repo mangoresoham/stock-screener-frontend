@@ -2,8 +2,9 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { LogOut, Menu } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, type Broker } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { AUTH_DOT_CLASS, brokerAuthState, brokerStatusText } from "@/lib/broker-status";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -199,7 +200,7 @@ function BrokerStrip({
   compact,
   stacked,
 }: {
-  brokers: { name: string; authenticated: boolean }[];
+  brokers: Broker[];
   /** Header, mobile: dots only, no labels/pills -- there's no room for text next to
       the hamburger button. Still readable via aria-label + native title tooltip. */
   compact?: boolean;
@@ -219,9 +220,9 @@ function BrokerStrip({
         {brokers.map((b) => (
           <span
             key={b.name}
-            title={`${b.name}: ${b.authenticated ? "authenticated" : "not authenticated"}`}
-            className={cn("size-2 rounded-full", b.authenticated ? "bg-pass" : "bg-fail")}
-            aria-label={`${b.name}: ${b.authenticated ? "authenticated" : "not authenticated"}`}
+            title={brokerStatusText(b)}
+            className={cn("size-2 rounded-full", AUTH_DOT_CLASS[brokerAuthState(b)])}
+            aria-label={brokerStatusText(b)}
           />
         ))}
       </div>
@@ -233,17 +234,15 @@ function BrokerStrip({
       {brokers.map((b) => (
         <span
           key={b.name}
+          title={brokerStatusText(b)}
           className={cn(
             "flex items-center gap-1.5 rounded bg-accent/40",
             stacked ? "px-2 py-1.5" : "px-2 py-0.5",
           )}
         >
           <span
-            className={cn(
-              "size-1.5 rounded-full",
-              b.authenticated ? "bg-pass" : "bg-fail",
-            )}
-            aria-label={b.authenticated ? "authenticated" : "not authenticated"}
+            className={cn("size-1.5 rounded-full", AUTH_DOT_CLASS[brokerAuthState(b)])}
+            aria-label={brokerStatusText(b)}
           />
           <span className="uppercase tracking-wide text-muted-foreground">{b.name}</span>
         </span>

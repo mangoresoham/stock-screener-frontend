@@ -31,11 +31,10 @@ error even though the backend itself is reachable (CORS is enforced by the brows
 visible via `curl`/Postman — that's the first thing to check if requests fail silently in
 dev tools but a raw `curl` to the same URL works fine).
 
-Backend URL and API key resolution, in `src/lib/config.ts`:
-1. `/settings` page overrides, stored in this browser's `localStorage` (highest priority,
+Backend URL resolution, in `src/lib/config.ts`:
+1. `/settings` page override, stored in this browser's `localStorage` (highest priority,
    no rebuild needed).
-2. Build-time `VITE_API_BASE_URL` / `VITE_API_KEY` env vars (defaults: base URL
-   `http://127.0.0.1:8000`, no key).
+2. Build-time `VITE_API_BASE_URL` env var (default `http://127.0.0.1:8000`).
 
 ## The async job model (the one thing to never forget)
 
@@ -52,10 +51,12 @@ results — always navigate to the run's own page and let it poll.
 
 ## Auth
 
-Send `X-API-Key: <key>` on every request if the backend has `API_KEY` configured (check
-`/settings` or ask whoever deployed it). Harmless to send even if the backend has no key set
-— `src/lib/api.ts`'s `request()` helper already does this unconditionally, so new endpoints
-added to `api.ts` get it for free without extra code.
+The browser authenticates **only** with the instance-login session cookie (httpOnly, set by
+`POST /auth/login`). `src/lib/api.ts`'s `request()` helper sends `credentials: "include"` on
+every call, so new endpoints added to `api.ts` get it for free. **Never send `X-API-Key` from
+this app or bake one into the bundle** (no `VITE_API_KEY`): the backend accepts that key in
+place of a login, and anything in the bundle is readable by anyone who can load the app. The
+key exists for non-browser callers (CLI/curl/scripts) only.
 
 ## Endpoints
 
@@ -71,7 +72,7 @@ added to `api.ts` get it for free without extra code.
 | `GET /universes` / `GET /universes/{name}` | List / full ticker detail. |
 | `POST /universes` | Raw JSON `{name, tickers[]}`. |
 | `POST /universes/upload` | Multipart CSV (+ optional `name` form field). Re-uploading identical content resolves to the same universe, no duplicate. |
-| `GET /brokers` / `GET /brokers/{name}/status` | `{name, authenticated, rate_limit_per_minute}`. |
+| `GET /brokers` / `GET /brokers/{name}/status` | `{name, authenticated, last_auth_at, last_auth_error, missing_credentials[], rate_limit_per_minute, credentials_updated_at}`. The auth fields are the **last real login attempt by the backend** (usually the worker, when it fetched) — not a live check. Never show `authenticated` without `last_auth_at`; `last_auth_at: null` means "not checked yet", not "failed". Use `src/lib/broker-status.ts` (`brokerAuthState`, `brokerStatusText`, `formatAgo`) rather than reading the fields ad hoc. |
 | `POST /brokers/{name}/reauth` | Evicts + re-authenticates. Can 424 with a message that already contains the actual fix (e.g. Breeze's manual login URL) — show it verbatim, never paraphrase. |
 
 ## Error status codes
@@ -79,7 +80,7 @@ added to `api.ts` get it for free without extra code.
 | Code | Meaning | Handling |
 |---|---|---|
 | `400` / `422` | Malformed request | `detail` is already specific (e.g. "must provide exactly one of universe_name or tickers") — show it as-is. |
-| `401` | Missing/wrong `X-API-Key` | Only relevant if the backend has `API_KEY` set. |
+| `401` | Not logged in, or the session expired/was invalidated (e.g. by a password reset) | Send the user to `/login`. |
 | `404` | Not found | Unknown `run_id`, universe name, or broker name. |
 | `424` | An upstream broker failed to authenticate | Show `detail` verbatim — it already contains the fix. |
 | `429` | The broker itself rate-limited a request | Rare, transient. Not the same as any per-request concurrency limit — there isn't one; excess load just queues longer in Redis. |

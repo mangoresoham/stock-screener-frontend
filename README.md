@@ -117,14 +117,17 @@ below) or the `/settings` page at runtime.
 
 Two ways to point this at a backend, in order of precedence:
 
-1. **`/settings` page** (runtime, no rebuild) — sets `localStorage` overrides for backend URL
-   and API key. Useful for pointing the same deployed frontend at a different backend without
+1. **`/settings` page** (runtime, no rebuild) — sets a `localStorage` override for the backend
+   URL. Useful for pointing the same deployed frontend at a different backend without
    redeploying.
-2. **Build-time env vars** (`.env`, or Lovable Secrets when deployed there):
+2. **Build-time env var** (`.env`, or Lovable Secrets when deployed there):
    - `VITE_API_BASE_URL` — the backend's base URL (e.g. `http://127.0.0.1:8000` locally, or
      wherever it's deployed). Defaults to `http://127.0.0.1:8000` if unset.
-   - `VITE_API_KEY` — only needed if the backend has `API_KEY` set. Sent as `X-API-Key` on
-     every request unconditionally; harmless if the backend doesn't check it.
+
+There is no API key setting: the browser authenticates **only** with the instance-login session
+cookie. Anything built into this bundle is readable by anyone who can load the app, and the
+backend's `X-API-Key` bypasses the login — so it is for non-browser callers (CLI/curl/scripts)
+only and must never be baked in here.
 
 Vite env vars are compile-time, not runtime — when building the [Docker image](#-docker), these
 must point at a URL every browser loading the app can actually reach (the server's LAN IP,
@@ -152,7 +155,6 @@ submission immediately navigates to the run's detail page, which owns the pollin
 ```sh
 docker build \
   --build-arg VITE_API_BASE_URL=http://<your-backend-host>:8000 \
-  --build-arg VITE_API_KEY=<optional> \
   -t stock-screener-frontend .
 
 docker run -p 3000:3000 stock-screener-frontend

@@ -22,9 +22,8 @@ dist-ssr
 package-lock.json
 yarn.lock
 
-# Env files may carry VITE_API_KEY or a real backend URL -- never commit secrets even in
-# a frontend-only repo. (VITE_-prefixed values still end up in the built JS bundle, but
-# the source .env file itself shouldn't be in version control regardless.)
+# Env files may carry a real backend URL -- keep them out of version control. (Never put a
+# secret in a VITE_-prefixed var at all: those end up in the built JS bundle.)
 .env
 .env.*
 

@@ -11,11 +11,11 @@ COPY . .
 
 # Baked into the client JS bundle at build time (Vite env vars are compile-time,
 # not runtime) -- must be a URL every browser that loads this app can reach,
-# i.e. the server's LAN IP, never "localhost". Rebuild the image to change these.
+# i.e. the server's LAN IP, never "localhost". Rebuild the image to change it.
+# Never pass a secret here: everything baked in is readable by anyone who loads the app
+# (which is why there is no API key build arg -- the browser uses the login cookie).
 ARG VITE_API_BASE_URL=http://127.0.0.1:8000
-ARG VITE_API_KEY=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_API_KEY=$VITE_API_KEY
 
 RUN bun run build
 
