@@ -86,6 +86,11 @@ function buildGroups(mode: ScreenMode, rows: ResultRow[]): Group[] {
   }));
 }
 
+// Ticker stays pinned while the indicator columns scroll sideways -- on a phone the table
+// is several screens wide, and a row of numbers without its ticker is meaningless. Needs
+// an opaque background or scrolled cells show through it.
+const STICKY_TICKER = "sticky left-0 z-[1] bg-sidebar shadow-[1px_0_0_var(--color-border)]";
+
 export function ResultsTable({ rows, mode }: { rows: ResultRow[]; mode: ScreenMode }) {
   const [sorting, setSorting] = useState<SortingState>([{ id: "Passed", desc: true }]);
   const [filter, setFilter] = useState("");
@@ -191,12 +196,14 @@ export function ResultsTable({ rows, mode }: { rows: ResultRow[]; mode: ScreenMo
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <Input
+          type="search"
+          aria-label="Filter by ticker"
           placeholder="Filter ticker…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="h-8 max-w-xs font-mono text-xs"
+          className="h-9 max-w-xs font-mono text-xs sm:h-8"
         />
-        <span className="text-xs text-muted-foreground tabular">
+        <span aria-live="polite" className="shrink-0 text-xs text-muted-foreground tabular">
           {table.getRowModel().rows.length} rows
         </span>
       </div>
@@ -207,6 +214,7 @@ export function ResultsTable({ rows, mode }: { rows: ResultRow[]; mode: ScreenMo
           `sticky` below sticks relative to that. */}
       <div className="overflow-x-auto overflow-y-visible rounded border">
         <table className="w-full text-xs">
+          <caption className="sr-only">Screen results, one row per ticker</caption>
           <thead className="sticky top-0 z-10 bg-sidebar/95 backdrop-blur">
             {table.getHeaderGroups().map((hg, rowIndex) => {
               // Two-row grouped header (Price/RSI/ATR/Comparative RS spanning their
@@ -223,35 +231,51 @@ export function ResultsTable({ rows, mode }: { rows: ResultRow[]; mode: ScreenMo
                       // group row -- left blank with no divider below, so its real
                       // header (rendered one row down) reads as a single unbroken
                       // heading instead of looking like a group label got cut off.
-                      return <th key={h.id} colSpan={h.colSpan} className="border-r last:border-r-0" />;
+                      return (
+                        <th
+                          key={h.id}
+                          colSpan={h.colSpan}
+                          className={cn("border-r last:border-r-0", h.column.id === "Ticker" && STICKY_TICKER)}
+                        />
+                      );
                     }
                     const canSort = h.column.getCanSort();
                     const sort = h.column.getIsSorted();
+                    const label = flexRender(h.column.columnDef.header, h.getContext());
                     return (
                       <th
                         key={h.id}
                         colSpan={h.colSpan}
+                        scope={isGroupRow ? "colgroup" : "col"}
+                        aria-sort={sort === "asc" ? "ascending" : sort === "desc" ? "descending" : undefined}
                         className={cn(
                           "text-left whitespace-nowrap border-r last:border-r-0",
                           isGroupRow
                             ? "px-2 py-1 text-xs font-semibold text-foreground tracking-wide border-b border-border/70"
                             : "px-2 py-1.5 font-medium text-muted-foreground uppercase tracking-wide text-xs",
-                          canSort && "cursor-pointer select-none hover:text-foreground",
+                          h.column.id === "Ticker" && STICKY_TICKER,
                         )}
-                        onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
                       >
-                        <span className="inline-flex items-center gap-1">
-                          {flexRender(h.column.columnDef.header, h.getContext())}
-                          {canSort ? (
-                            sort === "asc" ? (
-                              <ArrowUp className="size-3" />
+                        {/* A real <button>, not an onClick on the <th> -- headers must be
+                            reachable and operable from the keyboard to sort. */}
+                        {canSort ? (
+                          <button
+                            type="button"
+                            onClick={h.column.getToggleSortingHandler()}
+                            className="inline-flex items-center gap-1 rounded uppercase tracking-wide hover:text-foreground"
+                          >
+                            {label}
+                            {sort === "asc" ? (
+                              <ArrowUp aria-hidden className="size-3" />
                             ) : sort === "desc" ? (
-                              <ArrowDown className="size-3" />
+                              <ArrowDown aria-hidden className="size-3" />
                             ) : (
-                              <ArrowUpDown className="size-3 opacity-40" />
-                            )
-                          ) : null}
-                        </span>
+                              <ArrowUpDown aria-hidden className="size-3 opacity-40" />
+                            )}
+                          </button>
+                        ) : (
+                          label
+                        )}
                       </th>
                     );
                   })}
@@ -266,14 +290,17 @@ export function ResultsTable({ rows, mode }: { rows: ResultRow[]; mode: ScreenMo
                 <tr
                   key={row.id}
                   className={cn(
-                    "border-b hover:bg-accent/40 transition-colors",
+                    "group border-b hover:bg-accent/40 transition-colors",
                     isErr && "bg-muted/40 text-muted-foreground",
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      className="px-2 py-1 whitespace-nowrap border-r last:border-r-0"
+                      className={cn(
+                        "px-2 py-1.5 whitespace-nowrap border-r last:border-r-0",
+                        cell.column.id === "Ticker" && cn(STICKY_TICKER, "bg-card group-hover:bg-accent"),
+                      )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>

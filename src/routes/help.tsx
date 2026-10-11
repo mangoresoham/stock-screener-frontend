@@ -24,7 +24,7 @@ export const Route = createFileRoute("/help")({
 function HelpPage() {
   return (
     <AppShell>
-      <div className="mx-auto max-w-3xl p-6 space-y-4">
+      <div className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
         <div>
           <h1 className="text-lg font-semibold tracking-tight">How to Use</h1>
           <p className="text-xs text-muted-foreground">
@@ -193,9 +193,8 @@ function HelpPage() {
               <AccordionTrigger>Settings</AccordionTrigger>
               <AccordionContent className="space-y-2 text-muted-foreground">
                 <p>
-                  Toggle dark/light appearance, and — only if you need to point this app at a
-                  different backend or supply an API key — override the backend URL here. Both are
-                  stored in this browser only and apply immediately.
+                  Toggle dark/light appearance. Stored in this browser only and applies
+                  immediately.
                 </p>
               </AccordionContent>
             </AccordionItem>

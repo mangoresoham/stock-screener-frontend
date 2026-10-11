@@ -19,22 +19,16 @@ For the live, authoritative, exact-field-names contract, fetch `<BACKEND_URL>/op
 
 ## Running / connecting to the backend
 
-The backend is not managed from this repo. Whoever runs it locally does one of:
-- `docker compose up -d --build` (in the backend repo) — brings up TimescaleDB, Redis, the
-  API, and the ARQ worker together.
-- Or three separate processes: `docker compose up -d timescaledb redis`, then
-  `arq src.worker.WorkerSettings`, then `uvicorn src.api.app:app --reload --host 127.0.0.1`.
+The backend is not managed from this repo. The whole stack runs from the root
+`docker-compose.yml` (`docker compose up -d`, one level above this repo).
 
-**This frontend needs the backend's `CORS_ALLOWED_ORIGINS` to include this frontend's own
-origin** (e.g. `http://localhost:8080`), or every request fails in the browser with a CORS
-error even though the backend itself is reachable (CORS is enforced by the browser, not
-visible via `curl`/Postman — that's the first thing to check if requests fail silently in
-dev tools but a raw `curl` to the same URL works fine).
+The app always calls the API at `/api` on its own origin (`src/lib/api.ts`'s `API_BASE`):
+- Docker: the root compose's `nginx` service serves `/` from this app and forwards `/api/*`
+  to the `api` container (`nginx/default.conf`).
+- `bun run dev`: Vite's proxy (`vite.config.ts`) forwards `/api/*` to `http://127.0.0.1:8000`.
 
-Backend URL resolution, in `src/lib/config.ts`:
-1. `/settings` page override, stored in this browser's `localStorage` (highest priority,
-   no rebuild needed).
-2. Build-time `VITE_API_BASE_URL` env var (default `http://127.0.0.1:8000`).
+No backend URL setting, no CORS, and the `SameSite=Lax` session cookie is first-party. Don't
+reintroduce a configurable/absolute backend URL: a cross-origin API breaks the cookie.
 
 ## The async job model (the one thing to never forget)
 

@@ -22,8 +22,8 @@ dist-ssr
 package-lock.json
 yarn.lock
 
-# Env files may carry a real backend URL -- keep them out of version control. (Never put a
-# secret in a VITE_-prefixed var at all: those end up in the built JS bundle.)
+# Keep env files out of version control. (Never put a secret in a VITE_-prefixed var at
+# all: those end up in the built JS bundle.)
 .env
 .env.*
 

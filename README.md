@@ -48,7 +48,7 @@ just requests a reset link to whatever recovery address the backend has configur
 | `/universes` | Upload a CSV or paste a ticker list; browse saved universes. |
 | `/brokers` | Live broker auth status (Breeze/Angel/Yahoo), manual re-auth trigger, and a credentials dialog for Breeze/Angel (see below). |
 | `/help` | In-app walkthrough of running screens, building Custom-mode conditions, and reading results. |
-| `/settings` | Override the backend URL / API key at runtime, and toggle dark/light appearance — all stored in this browser's `localStorage` without a rebuild. |
+| `/settings` | Toggle dark/light appearance (stored in this browser's `localStorage`). |
 
 All of the above except `/`, `/login`, `/forgot-password`, and `/reset-password` are wrapped
 in `AppShell` and require a valid session.
@@ -109,39 +109,23 @@ bun install
 bun run dev
 ```
 
-Opens on `http://localhost:8080` by default (or whatever port Vite prints). With no
-`VITE_API_BASE_URL` set, it defaults to `http://127.0.0.1:8000` — override via `.env` (see
-below) or the `/settings` page at runtime.
+Opens on `http://localhost:8080` by default (or whatever port Vite prints). API calls go to
+`/api/*` on the same origin, which Vite's dev proxy forwards to `http://127.0.0.1:8000`
+(change it in `vite.config.ts`).
 
 ## 🔧 Connecting to the backend
 
-Two ways to point this at a backend, in order of precedence:
-
-1. **`/settings` page** (runtime, no rebuild) — sets a `localStorage` override for the backend
-   URL. Useful for pointing the same deployed frontend at a different backend without
-   redeploying.
-2. **Build-time env var** (`.env`, or Lovable Secrets when deployed there):
-   - `VITE_API_BASE_URL` — the backend's base URL (e.g. `http://127.0.0.1:8000` locally, or
-     wherever it's deployed). Defaults to `http://127.0.0.1:8000` if unset.
+**Default: same origin, nothing to configure.** The browser calls `/api/*` on whatever
+address it loaded the app from, and a reverse proxy forwards that to the backend
+(in Docker: the root compose's `nginx` service, `nginx/default.conf`, serving `/` from this
+app and `/api/*` from the `api` container; in `bun run dev`: Vite's proxy). The standard
+reverse-proxy pattern: no backend IP in the bundle, no CORS, and the `SameSite=Lax`
+session cookie is first-party whether the page is opened via `localhost`, a LAN IP or a hostname.
 
 There is no API key setting: the browser authenticates **only** with the instance-login session
 cookie. Anything built into this bundle is readable by anyone who can load the app, and the
 backend's `X-API-Key` bypasses the login — so it is for non-browser callers (CLI/curl/scripts)
 only and must never be baked in here.
-
-Vite env vars are compile-time, not runtime — when building the [Docker image](#-docker), these
-must point at a URL every browser loading the app can actually reach (the server's LAN IP,
-never `localhost`), and changing them means rebuilding the image.
-
-Every request is also sent with `credentials: "include"` so the instance-login session cookie
-attaches — this only works if frontend and backend share (or are configured to share) cookies
-across origins.
-
-**The backend must allow this frontend's origin via CORS** — set `CORS_ALLOWED_ORIGINS` in
-the backend's `.env` to match wherever this app is actually served from (e.g.
-`http://localhost:8080` for local dev), or every request will fail in the browser with a CORS
-error despite the backend itself being reachable (`curl` from a terminal will look fine —
-CORS is a browser-enforced check, not a server-side one).
 
 ## 🧠 What the backend actually does
 
@@ -153,9 +137,7 @@ submission immediately navigates to the run's detail page, which owns the pollin
 ## 🐳 Docker
 
 ```sh
-docker build \
-  --build-arg VITE_API_BASE_URL=http://<your-backend-host>:8000 \
-  -t stock-screener-frontend .
+docker build -t stock-screener-frontend .
 
 docker run -p 3000:3000 stock-screener-frontend
 ```
@@ -175,7 +157,6 @@ the client bundle — see the note in [Connecting to the backend](#-connecting-t
 - **Bun** as the package manager/runtime; **Nitro** (`node-server` preset) for the production
   server build
 - API client: `src/lib/api.ts` (typed wrapper over the backend's REST endpoints) +
-  `src/lib/config.ts` (backend URL/key resolution — env var → `localStorage` override) +
   `src/lib/auth.tsx` (session state via `useAuth()`, backed by `GET /auth/me`)
 
 ## Building / deploying

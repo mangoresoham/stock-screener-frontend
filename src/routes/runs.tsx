@@ -99,8 +99,8 @@ function RunsPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-5xl p-6 space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Past Runs</h1>
             <p className="text-xs text-muted-foreground">Most recent screen runs, across all users of this backend.</p>
@@ -109,7 +109,7 @@ function RunsPage() {
             <Button
               size="sm"
               variant="destructive"
-              className="h-7 text-xs"
+              className="text-xs"
               onClick={() => setPendingDelete(Array.from(selected))}
             >
               <Trash2 className="size-3" />
@@ -118,77 +118,125 @@ function RunsPage() {
           )}
         </div>
         <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-muted/40">
-              <tr>
-                <th className="px-3 py-2 w-8">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={(v) => toggleAll(Boolean(v))}
-                    aria-label="Select all runs"
-                  />
-                </th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Run ID</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Status</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Mode</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Broker</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Universe</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Started</th>
-                <th className="px-3 py-2 w-8"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.isLoading && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
-              )}
-              {q.error && (
-                <tr><td colSpan={8} className="p-6 text-center text-fail">{(q.error as Error).message}</td></tr>
-              )}
-              {runs.map((r) => (
-                <tr key={r.run_id} className="border-t hover:bg-accent/40">
-                  <td className="px-3 py-1.5">
-                    <Checkbox
-                      checked={selected.has(r.run_id)}
-                      onCheckedChange={(v) => toggleOne(r.run_id, Boolean(v))}
-                      aria-label={`Select run #${r.run_id}`}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5 font-mono">
-                    <Link
-                      to="/runs/$runId"
-                      params={{ runId: String(r.run_id) }}
-                      className="text-signal hover:underline"
-                    >
-                      #{r.run_id}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-1.5"><StatusBadge status={r.status} /></td>
-                  <td className="px-3 py-1.5 font-mono">{r.mode}</td>
-                  <td className="px-3 py-1.5 font-mono">{r.broker}</td>
-                  <td className="px-3 py-1.5 font-mono text-muted-foreground">
-                    {r.universe.name} · {r.universe.member_count}
-                  </td>
-                  <td className="px-3 py-1.5 font-mono text-muted-foreground">{fmtDateTime(r.started_at)}</td>
-                  <td className="px-3 py-1.5 text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-fail"
-                      onClick={() => setPendingDelete([r.run_id])}
-                      aria-label={`Delete run #${r.run_id}`}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {!q.isLoading && runs.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No runs yet.</td></tr>
-              )}
-            </tbody>
-          </table>
-          </div>
+          {q.isLoading ? (
+            <p role="status" className="p-6 text-center text-xs text-muted-foreground">Loading…</p>
+          ) : q.error ? (
+            <p role="alert" className="p-6 text-center text-xs text-fail">{(q.error as Error).message}</p>
+          ) : runs.length === 0 ? (
+            <p className="p-6 text-center text-xs text-muted-foreground">No runs yet.</p>
+          ) : (
+            <>
+              {/* Phones: one card per run -- an 8-column table at 375px is a sideways-scroll
+                  puzzle. Same data and actions as the table below. */}
+              <div className="md:hidden">
+                <label className="flex items-center gap-3 border-b bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
+                  <Checkbox checked={allSelected} onCheckedChange={(v) => toggleAll(Boolean(v))} />
+                  Select all
+                </label>
+                <ul className="divide-y">
+                  {runs.map((r) => (
+                    <li key={r.run_id} className="flex items-start gap-3 px-3 py-3">
+                      <Checkbox
+                        className="mt-1"
+                        checked={selected.has(r.run_id)}
+                        onCheckedChange={(v) => toggleOne(r.run_id, Boolean(v))}
+                        aria-label={`Select run #${r.run_id}`}
+                      />
+                      <Link
+                        to="/runs/$runId"
+                        params={{ runId: String(r.run_id) }}
+                        className="min-w-0 flex-1 space-y-1 rounded"
+                      >
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-sm font-medium text-signal">#{r.run_id}</span>
+                          <StatusBadge status={r.status} />
+                        </span>
+                        <span className="block font-mono text-xs">
+                          {r.mode} · {r.broker}
+                        </span>
+                        <span className="block truncate font-mono text-xs text-muted-foreground">
+                          {r.universe.name} · {r.universe.member_count} · {fmtDateTime(r.started_at)}
+                        </span>
+                      </Link>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="-mr-2 shrink-0 text-muted-foreground hover:text-fail"
+                        onClick={() => setPendingDelete([r.run_id])}
+                        aria-label={`Delete run #${r.run_id}`}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full text-xs">
+                  <caption className="sr-only">Past screen runs</caption>
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th scope="col" className="px-3 py-2 w-8">
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={(v) => toggleAll(Boolean(v))}
+                          aria-label="Select all runs"
+                        />
+                      </th>
+                      <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Run ID</th>
+                      <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Status</th>
+                      <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Mode</th>
+                      <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Broker</th>
+                      <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Universe</th>
+                      <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Started</th>
+                      <th scope="col" className="px-3 py-2 w-8"><span className="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {runs.map((r) => (
+                      <tr key={r.run_id} className="border-t hover:bg-accent/40">
+                        <td className="px-3 py-1.5">
+                          <Checkbox
+                            checked={selected.has(r.run_id)}
+                            onCheckedChange={(v) => toggleOne(r.run_id, Boolean(v))}
+                            aria-label={`Select run #${r.run_id}`}
+                          />
+                        </td>
+                        <td className="px-3 py-1.5 font-mono">
+                          <Link
+                            to="/runs/$runId"
+                            params={{ runId: String(r.run_id) }}
+                            className="text-signal hover:underline"
+                          >
+                            #{r.run_id}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-1.5"><StatusBadge status={r.status} /></td>
+                        <td className="px-3 py-1.5 font-mono">{r.mode}</td>
+                        <td className="px-3 py-1.5 font-mono">{r.broker}</td>
+                        <td className="px-3 py-1.5 font-mono text-muted-foreground">
+                          {r.universe.name} · {r.universe.member_count}
+                        </td>
+                        <td className="px-3 py-1.5 font-mono text-muted-foreground">{fmtDateTime(r.started_at)}</td>
+                        <td className="px-3 py-1.5 text-right">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-8 text-muted-foreground hover:text-fail"
+                            onClick={() => setPendingDelete([r.run_id])}
+                            aria-label={`Delete run #${r.run_id}`}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </Card>
       </div>
 

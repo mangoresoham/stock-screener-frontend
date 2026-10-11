@@ -62,7 +62,7 @@ function NodeEditor({
       <div className="flex flex-wrap items-center gap-2">
         <RefEditor value={node.left} onChange={(v) => onChange({ ...node, left: v })} indicators={indicators} />
         <Select value={node.op} onValueChange={(v) => onChange({ ...node, op: v })}>
-          <SelectTrigger className="h-8 w-36 font-mono text-xs">
+          <SelectTrigger className="h-9 w-20 font-mono text-xs sm:h-8" aria-label="Operator">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -76,9 +76,10 @@ function NodeEditor({
         <RefEditor value={node.right} onChange={(v) => onChange({ ...node, right: v })} indicators={indicators} />
         <div className="ml-auto flex gap-1">
           <Button
+            type="button"
             size="sm"
             variant="outline"
-            className="h-7 text-xs"
+            className="text-xs"
             onClick={() =>
               onChange({
                 op: "AND",
@@ -100,7 +101,7 @@ function NodeEditor({
           value={branch.op}
           onValueChange={(v) => onChange({ ...branch, op: v as "AND" | "OR" })}
         >
-          <SelectTrigger className="h-7 w-20 font-mono text-xs">
+          <SelectTrigger className="h-9 w-20 font-mono text-xs sm:h-8" aria-label="Group logic">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -111,9 +112,10 @@ function NodeEditor({
         <span className="text-xs text-muted-foreground">group of {branch.conditions.length}</span>
         <div className="ml-auto flex gap-1">
           <Button
+            type="button"
             size="sm"
             variant="outline"
-            className="h-7 text-xs"
+            className="text-xs"
             onClick={() => onChange({ ...branch, conditions: [...branch.conditions, emptyLeaf(indicators)] })}
           >
             <Plus className="size-3" /> Add
@@ -136,9 +138,11 @@ function NodeEditor({
               />
             </div>
             <Button
+              type="button"
               size="icon"
               variant="ghost"
-              className="h-7 w-7 shrink-0"
+              className="shrink-0 text-muted-foreground hover:text-fail"
+              aria-label={`Remove condition ${i + 1}`}
               onClick={() => {
                 const next = branch.conditions.filter((_, j) => j !== i);
                 if (next.length === 1) onChange(next[0]);
@@ -176,7 +180,7 @@ function RefEditor({
           }
         }}
       >
-        <SelectTrigger className="h-8 w-40 font-mono text-xs">
+        <SelectTrigger className="h-9 w-36 font-mono text-xs sm:h-8" aria-label="Indicator or constant">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -193,7 +197,9 @@ function RefEditor({
       {isValue ? (
         <Input
           type="number"
-          className="h-8 w-24 font-mono text-xs"
+          inputMode="decimal"
+          aria-label="Constant value"
+          className="h-9 w-24 font-mono text-xs sm:h-8"
           value={(value as { value: number }).value}
           onChange={(e) => onChange({ value: Number(e.target.value) })}
         />
@@ -202,7 +208,7 @@ function RefEditor({
           value={(value as any).field}
           onValueChange={(v) => onChange({ ...(value as any), field: v })}
         >
-          <SelectTrigger className="h-8 w-32 font-mono text-xs">
+          <SelectTrigger className="h-9 w-32 font-mono text-xs sm:h-8" aria-label="Indicator field">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

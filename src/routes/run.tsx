@@ -167,7 +167,7 @@ function RunPage() {
     <AppShell>
       <form
         onSubmit={form.handleSubmit((v) => submit.mutate(v))}
-        className="mx-auto max-w-3xl p-6 space-y-5 pb-24"
+        className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6"
       >
         <div className="space-y-1">
           <h1 className="text-lg font-semibold tracking-tight">Run Screen</h1>
@@ -178,14 +178,15 @@ function RunPage() {
 
         {/* Source */}
         <Card className="p-4 space-y-3">
-          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Universe</Label>
-          <div className="flex gap-2 text-xs">
+          <Label id="source-label" className="text-xs uppercase tracking-wide text-muted-foreground">Universe</Label>
+          <div role="group" aria-labelledby="source-label" className="flex gap-2 text-xs">
             {(["universe", "tickers"] as const).map((s) => (
               <button
                 type="button"
                 key={s}
+                aria-pressed={source === s}
                 onClick={() => form.setValue("source", s)}
-                className={`px-3 py-1 rounded border font-mono ${
+                className={`h-9 px-3 rounded border font-mono sm:h-8 ${
                   source === s ? "border-signal bg-signal/15 text-signal" : "border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -199,7 +200,7 @@ function RunPage() {
               name="universe_name"
               render={({ field }) => (
                 <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                  <SelectTrigger className="h-9 font-mono text-xs">
+                  <SelectTrigger className="h-9 font-mono text-xs" aria-label="Saved universe">
                     <SelectValue placeholder={universesQ.isLoading ? "Loading…" : "Select universe"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -214,6 +215,7 @@ function RunPage() {
             />
           ) : (
             <Textarea
+              aria-label="Tickers"
               placeholder="RELIANCE, TCS, INFY  (comma or newline separated)"
               className="font-mono text-xs min-h-24"
               {...form.register("tickers_raw")}
@@ -226,13 +228,13 @@ function RunPage() {
         {/* Mode + broker */}
         <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mode</Label>
+            <Label htmlFor="mode" className="text-xs uppercase tracking-wide text-muted-foreground">Mode</Label>
             <Controller
               control={form.control}
               name="mode"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="h-9 font-mono text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="mode" className="h-9 font-mono text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {modes.map((m) => (
                       <SelectItem key={m.mode} value={m.mode} className="font-mono text-xs">
@@ -255,13 +257,13 @@ function RunPage() {
             )}
           </div>
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Broker</Label>
+            <Label htmlFor="broker" className="text-xs uppercase tracking-wide text-muted-foreground">Broker</Label>
             <Controller
               control={form.control}
               name="broker"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="h-9 font-mono text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="broker" className="h-9 font-mono text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="angel" className="font-mono text-xs">angel</SelectItem>
                     <SelectItem value="breeze" className="font-mono text-xs">breeze</SelectItem>
@@ -280,7 +282,7 @@ function RunPage() {
           <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Indicators</Label>
-              <Button type="button" size="sm" variant="outline" onClick={addCustomIndicator} className="h-7 text-xs">
+              <Button type="button" size="sm" variant="outline" onClick={addCustomIndicator} className="text-xs">
                 Add indicator
               </Button>
             </div>
@@ -302,7 +304,7 @@ function RunPage() {
                       setCustomIndicators((prev) => prev.map((p, j) => (j === i ? { name, period, benchmark } : p)));
                     }}
                   >
-                    <SelectTrigger className="h-8 w-48 font-mono text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 w-full font-mono text-xs sm:h-8 sm:w-48" aria-label={`Indicator ${i + 1}`}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {availableIndicators.map((x) => (
                         <SelectItem key={x.name} value={x.name} className="font-mono text-xs">
@@ -313,7 +315,9 @@ function RunPage() {
                   </Select>
                   <Input
                     type="number"
-                    className="h-8 w-24 font-mono text-xs"
+                    inputMode="numeric"
+                    aria-label={`${ind.name} period`}
+                    className="h-9 w-24 font-mono text-xs sm:h-8"
                     value={ind.period}
                     onChange={(e) =>
                       setCustomIndicators((prev) =>
@@ -324,7 +328,8 @@ function RunPage() {
                   {needsBenchmark && (
                     <Input
                       type="text"
-                      className="h-8 w-28 font-mono text-xs"
+                      aria-label={`${ind.name} benchmark ticker`}
+                      className="h-9 w-32 font-mono text-xs sm:h-8"
                       placeholder="Benchmark (e.g. NIFTY)"
                       value={ind.benchmark ?? ""}
                       onChange={(e) =>
@@ -338,7 +343,7 @@ function RunPage() {
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="h-8 text-xs text-muted-foreground"
+                    className="text-xs text-muted-foreground"
                     onClick={() => setCustomIndicators((prev) => prev.filter((_, j) => j !== i))}
                   >
                     Remove
@@ -361,8 +366,8 @@ function RunPage() {
             </div>
 
             <div className="space-y-2 pt-2">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Interval</Label>
-              <Input className="h-8 w-32 font-mono text-xs" {...form.register("interval")} placeholder="1d" />
+              <Label htmlFor="interval" className="text-xs uppercase tracking-wide text-muted-foreground">Interval</Label>
+              <Input id="interval" className="h-9 w-32 font-mono text-xs sm:h-8" {...form.register("interval")} placeholder="1d" />
               <FieldError name="interval" form={form} />
             </div>
           </Card>
@@ -373,7 +378,7 @@ function RunPage() {
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-1 rounded py-2 text-xs text-muted-foreground hover:text-foreground"
             >
               <ChevronDown className={`size-3 transition-transform ${advancedOpen ? "" : "-rotate-90"}`} />
               Advanced (date window)
@@ -382,22 +387,22 @@ function RunPage() {
           <CollapsibleContent className="pt-3">
             <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Start</Label>
+                <Label htmlFor="start_date" className="text-xs uppercase tracking-wide text-muted-foreground">Start</Label>
                 <Controller
                   control={form.control}
                   name="start_date"
                   render={({ field }) => (
-                    <MarketCloseDateField value={field.value} onChange={field.onChange} />
+                    <MarketCloseDateField id="start_date" value={field.value} onChange={field.onChange} />
                   )}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">End</Label>
+                <Label htmlFor="end_date" className="text-xs uppercase tracking-wide text-muted-foreground">End</Label>
                 <Controller
                   control={form.control}
                   name="end_date"
                   render={({ field }) => (
-                    <MarketCloseDateField value={field.value} onChange={field.onChange} />
+                    <MarketCloseDateField id="end_date" value={field.value} onChange={field.onChange} />
                   )}
                 />
                 <FieldError name="end_date" form={form} />
@@ -411,7 +416,7 @@ function RunPage() {
           </CollapsibleContent>
         </Collapsible>
 
-        <div className="sticky bottom-0 -mx-6 px-6 py-3 bg-background/95 backdrop-blur border-t">
+        <div className="sticky bottom-0 -mx-4 border-t bg-background/95 px-4 pt-3 pb-safe backdrop-blur sm:-mx-6 sm:px-6">
           <Button
             type="submit"
             size="lg"
@@ -436,9 +441,11 @@ function RunPage() {
 const MARKET_CLOSE_TIME = "15:30";
 
 function MarketCloseDateField({
+  id,
   value,
   onChange,
 }: {
+  id: string;
   value?: string; // "" | "YYYY-MM-DDTHH:mm" -- same format datetime-local produced, so submission logic is unchanged
   onChange: (v: string) => void;
 }) {
@@ -448,6 +455,7 @@ function MarketCloseDateField({
   return (
     <div className="flex gap-2">
       <Input
+        id={id}
         type="date"
         className="h-9 font-mono text-xs flex-1"
         value={datePart ?? ""}
@@ -459,6 +467,7 @@ function MarketCloseDateField({
         value={timePart}
         disabled={!datePart}
         title="Defaults to NSE market close (15:30) -- editable"
+        aria-label={`${id.replace("_date", "")} time`}
         onChange={(e) => onChange(datePart ? `${datePart}T${e.target.value}` : "")}
       />
     </div>
@@ -468,7 +477,7 @@ function MarketCloseDateField({
 function FieldError({ name, form }: { name: keyof FormValues; form: ReturnType<typeof useForm<FormValues>> }) {
   const msg = form.formState.errors[name]?.message as string | undefined;
   if (!msg) return null;
-  return <p className="text-xs text-fail">{msg}</p>;
+  return <p role="alert" className="text-xs text-fail">{msg}</p>;
 }
 
 // Mirrors the exact pass logic in the backend (src/screener/engine.py's

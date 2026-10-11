@@ -68,12 +68,12 @@ function RunDetail() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-[1400px] p-6 space-y-4">
+      <div className="mx-auto max-w-[1400px] space-y-4 p-4 sm:p-6">
         {q.isLoading && !run && (
-          <div className="text-sm text-muted-foreground">Loading run…</div>
+          <div role="status" className="text-sm text-muted-foreground">Loading run…</div>
         )}
         {q.error && !run && (
-          <div className="text-sm text-fail">{(q.error as Error).message}</div>
+          <div role="alert" className="text-sm text-fail">{(q.error as Error).message}</div>
         )}
 
         {run && (
@@ -81,12 +81,13 @@ function RunDetail() {
             {/* Header strip: mode, broker, data window */}
             <Card className="p-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
+                <div className="min-w-0 space-y-2">
+                  {/* Status changes arrive by polling -- announce them to screen readers. */}
+                  <div aria-live="polite" className="flex flex-wrap items-center gap-3">
                     <StatusBadge status={run.status} showHint />
                     <span className="font-mono text-xs text-muted-foreground">{run.run_id}</span>
                   </div>
-                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:flex sm:flex-wrap sm:gap-y-1">
                     <Field label="Mode" value={run.mode} />
                     <Field label="Broker" value={run.broker} />
                     <Field label="Universe" value={run.universe?.name ?? `${run.universe?.member_count ?? "—"} tickers`} />
@@ -97,14 +98,14 @@ function RunDetail() {
                   </div>
                 </div>
                 {run.status === "completed" && (
-                  <Button onClick={onExport} className="bg-signal text-signal-foreground hover:bg-signal/90">
+                  <Button onClick={onExport} className="w-full bg-signal text-signal-foreground hover:bg-signal/90 sm:w-auto">
                     <Download className="size-4" /> Download Excel
                   </Button>
                 )}
                 {(run.status === "queued" || run.status === "running") && (
                   <Button
                     variant="outline"
-                    className="border-fail/40 text-fail hover:bg-fail/10"
+                    className="w-full border-fail/40 text-fail hover:bg-fail/10 sm:w-auto"
                     disabled={cancelMutation.isPending}
                     onClick={() => cancelMutation.mutate()}
                   >
@@ -117,7 +118,7 @@ function RunDetail() {
 
             {/* Headline */}
             {run.status === "completed" && (
-              <div className="flex items-baseline gap-3">
+              <div className="flex flex-wrap items-baseline gap-x-3">
                 <div className="text-3xl font-semibold font-mono tabular text-pass">
                   {passedCount}
                   <span className="text-muted-foreground"> / {totalCount}</span>
@@ -156,9 +157,9 @@ function RunDetail() {
 
 function Field({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
-    <div className="flex flex-col">
+    <div className="flex min-w-0 flex-col">
       <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className={`font-mono ${warn ? "text-warn" : ""}`}>{value}</span>
+      <span className={`font-mono break-words ${warn ? "text-warn" : ""}`}>{value}</span>
     </div>
   );
 }

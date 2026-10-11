@@ -9,14 +9,6 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
-# Baked into the client JS bundle at build time (Vite env vars are compile-time,
-# not runtime) -- must be a URL every browser that loads this app can reach,
-# i.e. the server's LAN IP, never "localhost". Rebuild the image to change it.
-# Never pass a secret here: everything baked in is readable by anyone who loads the app
-# (which is why there is no API key build arg -- the browser uses the login cookie).
-ARG VITE_API_BASE_URL=http://127.0.0.1:8000
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-
 RUN bun run build
 
 # Stage 2: run the built Nitro output on plain Node -- no bun/dev deps at runtime.

@@ -38,7 +38,10 @@ function UniversesPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["universes"], queryFn: api.listUniverses });
 
+  // Separate per card -- one shared name meant typing into "Paste tickers" silently
+  // renamed a pending CSV upload too.
   const [name, setName] = useState("");
+  const [csvName, setCsvName] = useState("");
   const [raw, setRaw] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -64,12 +67,12 @@ function UniversesPage() {
   const uploadCsv = useMutation({
     mutationFn: async () => {
       if (!file) throw new Error("Pick a CSV file");
-      return api.uploadUniverseCsv(file, name.trim() || undefined);
+      return api.uploadUniverseCsv(file, csvName.trim() || undefined);
     },
     onSuccess: (u) => {
       toast.success("Uploaded", { description: `${u.name} · ${u.member_count} tickers` });
       setFile(null);
-      setName("");
+      setCsvName("");
       invalidate();
     },
     onError: (e) => toast.error("Upload failed", { description: e instanceof ApiError ? e.detail : (e as Error).message }),
@@ -100,12 +103,12 @@ function UniversesPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-5xl p-6 space-y-6">
+      <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
         <h1 className="text-lg font-semibold tracking-tight">Universes</h1>
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="p-4 space-y-3">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Upload CSV</div>
+            <h2 className="text-xs uppercase tracking-wide text-muted-foreground">Upload CSV</h2>
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -118,38 +121,42 @@ function UniversesPage() {
                 const f = e.dataTransfer.files?.[0];
                 if (f) setFile(f);
               }}
-              className={`rounded border-2 border-dashed p-6 text-center text-xs transition-colors ${
+              className={`rounded border-2 border-dashed p-6 text-center text-xs transition-colors focus-within:border-signal ${
                 dragOver ? "border-signal bg-signal/10" : "border-border text-muted-foreground"
               }`}
             >
-              <Upload className="mx-auto mb-2 size-5" />
+              <Upload aria-hidden className="mx-auto mb-2 size-5" />
               {file ? (
-                <div className="font-mono">{file.name}</div>
+                <div className="break-all font-mono">{file.name}</div>
               ) : (
                 <div>
-                  Drop CSV here, or{" "}
+                  <span className="hidden sm:inline">Drop CSV here, or </span>
                   <label className="cursor-pointer text-signal underline">
-                    browse
+                    <span className="sm:hidden">Choose a CSV file</span>
+                    <span className="hidden sm:inline">browse</span>
+                    {/* sr-only, not `hidden` -- display:none drops it from the tab order,
+                        leaving keyboard users no way to pick a file at all. */}
                     <input
                       type="file"
                       accept=".csv,text/csv"
-                      className="hidden"
+                      className="sr-only"
                       onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                     />
                   </label>
                 </div>
               )}
             </div>
-            <Input placeholder="Name (optional — inferred from file)" value={name} onChange={(e) => setName(e.target.value)} className="h-9 font-mono text-xs" />
+            <Input aria-label="Universe name (optional)" placeholder="Name (optional — inferred from file)" value={csvName} onChange={(e) => setCsvName(e.target.value)} className="h-9 font-mono text-xs" />
             <Button disabled={!file || uploadCsv.isPending} onClick={() => uploadCsv.mutate()} className="w-full">
               {uploadCsv.isPending ? "Uploading…" : "Upload"}
             </Button>
           </Card>
 
           <Card className="p-4 space-y-3">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Paste tickers</div>
-            <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="h-9 font-mono text-xs" />
+            <h2 className="text-xs uppercase tracking-wide text-muted-foreground">Paste tickers</h2>
+            <Input aria-label="Universe name" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="h-9 font-mono text-xs" />
             <Textarea
+              aria-label="Tickers"
               placeholder="RELIANCE, TCS, INFY, HDFCBANK…"
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
@@ -162,38 +169,41 @@ function UniversesPage() {
         </div>
 
         <Card className="p-0 overflow-hidden">
-          <div className="border-b px-4 py-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <h2 className="border-b px-4 py-2 text-xs font-normal uppercase tracking-wide text-muted-foreground">
             Saved universes
-          </div>
+          </h2>
           <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Name</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs">Members</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Created</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Hash</th>
-                <th className="px-3 py-2 w-8"></th>
+                <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Name</th>
+                <th scope="col" className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs">Members</th>
+                <th scope="col" className="hidden px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs sm:table-cell">Created</th>
+                <th scope="col" className="hidden px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs md:table-cell">Hash</th>
+                <th scope="col" className="px-3 py-2 w-8"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {q.isLoading && (
-                <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={5} role="status" className="p-6 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {q.error && (
-                <tr><td colSpan={5} className="p-6 text-center text-fail">{(q.error as Error).message}</td></tr>
+                <tr><td colSpan={5} role="alert" className="p-6 text-center text-fail">{(q.error as Error).message}</td></tr>
               )}
               {(q.data ?? []).map((u) => (
                 <tr key={String(u.id)} className="border-t hover:bg-accent/40">
-                  <td className="px-3 py-1.5 font-mono">{u.name}</td>
+                  <td className="px-3 py-1.5 font-mono break-all">
+                    {u.name}
+                    <span className="block text-muted-foreground sm:hidden">{fmtDateTime(u.created_at)}</span>
+                  </td>
                   <td className="px-3 py-1.5 text-right font-mono tabular">{u.member_count}</td>
-                  <td className="px-3 py-1.5 font-mono text-muted-foreground">{fmtDateTime(u.created_at)}</td>
-                  <td className="px-3 py-1.5 font-mono text-muted-foreground truncate max-w-40">{u.content_hash?.slice(0, 12)}</td>
+                  <td className="hidden px-3 py-1.5 font-mono text-muted-foreground sm:table-cell">{fmtDateTime(u.created_at)}</td>
+                  <td className="hidden px-3 py-1.5 font-mono text-muted-foreground truncate max-w-40 md:table-cell">{u.content_hash?.slice(0, 12)}</td>
                   <td className="px-3 py-1.5 text-right">
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="ghost"
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-fail"
+                      className="text-muted-foreground hover:text-fail sm:size-8"
                       onClick={() => setPendingDelete({ id: u.id, name: u.name })}
                       aria-label={`Delete universe ${u.name}`}
                     >

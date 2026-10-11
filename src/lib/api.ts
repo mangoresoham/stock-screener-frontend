@@ -1,4 +1,8 @@
-import { getApiBaseUrl } from "./config";
+// Always same-origin: nginx (Docker) or Vite's dev proxy forwards /api/* to the backend, so
+// the browser never knows the backend's address and the session cookie is first-party.
+// There is deliberately no API key: anything in this bundle is readable by anyone who can
+// load the app, and X-API-Key bypasses the login. It's for CLI/curl/scripts only.
+const API_BASE = "/api";
 
 // ============================================================
 // Types (mirroring the backend OpenAPI contract). Kept intentionally loose
@@ -167,16 +171,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (init?.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const res = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...init,
-    headers,
-    // Required for the instance-login session cookie (httpOnly, set by POST /auth/login)
-    // to ever be sent back on subsequent requests -- without this, a cross-origin fetch()
-    // (frontend and API on different ports even on the same host) never attaches cookies
-    // at all, regardless of the cookie's own SameSite setting. This cookie is the browser's
-    // only credential -- see src/lib/config.ts for why no X-API-Key is sent.
-    credentials: "include",
-  });
+  // Same-origin, so fetch's default credentials mode already sends the session cookie.
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!res.ok) await parseError(res);
   if (res.status === 204) return undefined as T;
   const ct = res.headers.get("content-type") ?? "";
@@ -208,7 +204,7 @@ export const api = {
   runScreen: (body: RunScreenBody) =>
     request<ScreenRun>("/screens/run", { method: "POST", body: JSON.stringify(body) }),
   getRun: (runId: string) => request<ScreenRun>(`/screens/${encodeURIComponent(runId)}`),
-  exportRunUrl: (runId: string) => `${getApiBaseUrl()}/screens/${encodeURIComponent(runId)}/export`,
+  exportRunUrl: (runId: string) => `${API_BASE}/screens/${encodeURIComponent(runId)}/export`,
   // Cooperative stop for a queued/running run -- see backend's cancel_screen_run()
   // docstring for why this isn't instant (a ticker fetch already in flight still
   // finishes). Status flips to "cancelled" once the worker notices, so callers should

@@ -188,4 +188,39 @@
   .font-mono {
     font-family: var(--font-mono);
   }
+  /* Keyboard focus is always visible, including on hand-rolled buttons/links that don't
+     carry the shadcn ring classes. Components with their own focus-visible ring set
+     outline-none, which still wins over this base-layer rule. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Room for the iOS home indicator under sticky bottom bars. */
+@utility pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Deliberately unlayered: unlayered rules beat Tailwind's utilities layer, so this
+   overrides every `text-xs` on a form control without touching each call site. iOS
+   Safari zooms the page on focusing any input under 16px, which on a phone throws the
+   whole layout off-screen mid-form. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

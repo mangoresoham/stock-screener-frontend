@@ -44,7 +44,7 @@ function IndexRoute() {
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <LandingHeader />
       <Hero />
       <MockResults />
@@ -79,13 +79,13 @@ function LandingHeader() {
             onClick={toggleTheme}
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             aria-label="Toggle theme"
-            className="rounded-md border border-border p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/60"
+            className="inline-flex size-9 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent/60"
           >
             {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
           </button>
           <Link
             to="/login"
-            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent/60"
+            className="inline-flex h-9 items-center rounded-md border border-border px-3 text-xs font-medium text-foreground hover:bg-accent/60"
           >
             Log in
           </Link>
@@ -144,6 +144,7 @@ function MockResults() {
       </div>
       <div className="overflow-x-auto rounded border">
         <table className="w-full text-xs">
+          <caption className="sr-only">Example screen results (illustrative, not live data)</caption>
           <thead className="bg-sidebar/95">
             <tr className="border-b">
               <th className="px-2 py-1.5 text-left font-medium text-muted-foreground uppercase tracking-wide">Pass</th>

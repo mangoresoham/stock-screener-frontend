@@ -66,15 +66,21 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Covers both the brief real loading state and the moment right before the redirect
     // above fires -- never flashes real app chrome/data to an unauthenticated visitor.
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-xs text-muted-foreground">Checking session…</div>
+      <div className="flex min-h-dvh items-center justify-center bg-background">
+        <div role="status" className="text-xs text-muted-foreground">Checking session…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <header className="border-b bg-sidebar/60 backdrop-blur">
+    <div className="min-h-dvh flex flex-col bg-background text-foreground">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-2 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm"
+      >
+        Skip to content
+      </a>
+      <header className="sticky top-0 z-40 border-b bg-sidebar/80 backdrop-blur">
         <div className="flex h-11 items-center gap-3 px-3 sm:gap-6 sm:px-4">
           <Link to="/run" className="font-semibold tracking-tight text-sm shrink-0">
             <span className="text-signal">◆</span> Screener
@@ -85,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               room to lay 5 links + broker pills + a settings link out horizontally on
               a phone-width screen without either overflowing or shrinking to
               unreadable/untappable sizes. */}
-          <nav className="hidden md:flex items-center gap-1 text-xs">
+          <nav aria-label="Main" className="hidden md:flex items-center gap-1 text-xs">
             {nav.map((item) => (
               <Link
                 key={item.to}
@@ -127,8 +133,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               aria-label="Open menu"
+              aria-expanded={menuOpen}
               onClick={() => setMenuOpen(true)}
-              className="p-1.5 -mr-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60"
+              className="-mr-2 inline-flex size-10 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60"
             >
               <Menu className="size-5" />
             </button>
@@ -143,7 +150,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="text-signal">◆</span> Screener
             </SheetTitle>
           </SheetHeader>
-          <nav className="flex flex-col px-2 text-sm">
+          <nav aria-label="Main" className="flex flex-col px-2 text-sm">
             {nav.map((item) => (
               <SheetClose asChild key={item.to}>
                 <Link
@@ -183,14 +190,16 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             </SheetClose>
           </nav>
-          <div className="mt-auto border-t px-4 py-3">
+          <div className="mt-auto border-t px-4 py-3 pb-safe">
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Brokers</div>
             <BrokerStrip brokers={brokers ?? []} stacked />
           </div>
         </SheetContent>
       </Sheet>
 
-      <main className="flex-1 min-h-0">{children}</main>
+      <main id="main" tabIndex={-1} className="flex-1 min-h-0 focus:outline-none">
+        {children}
+      </main>
     </div>
   );
 }
@@ -220,6 +229,7 @@ function BrokerStrip({
         {brokers.map((b) => (
           <span
             key={b.name}
+            role="img"
             title={brokerStatusText(b)}
             className={cn("size-2 rounded-full", AUTH_DOT_CLASS[brokerAuthState(b)])}
             aria-label={brokerStatusText(b)}
@@ -241,6 +251,7 @@ function BrokerStrip({
           )}
         >
           <span
+            role="img"
             className={cn("size-1.5 rounded-full", AUTH_DOT_CLASS[brokerAuthState(b)])}
             aria-label={brokerStatusText(b)}
           />

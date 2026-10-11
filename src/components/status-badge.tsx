@@ -39,7 +39,7 @@ export function StatusBadge({ status, showHint }: { status: RunStatus; showHint?
           m.className,
         )}
       >
-        <span className="size-1.5 rounded-full bg-current" />
+        <span aria-hidden className="size-1.5 rounded-full bg-current" />
         {m.label}
       </span>
       {showHint && <span className="text-xs text-muted-foreground">{m.hint}</span>}

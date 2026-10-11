@@ -110,17 +110,17 @@ function BrokersPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-4xl p-6 space-y-4">
+      <div className="mx-auto max-w-4xl space-y-4 p-4 sm:p-6">
         <h1 className="text-lg font-semibold tracking-tight">Brokers</h1>
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Status</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Broker</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs">Rate limit / min</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs"></th>
+                <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Status</th>
+                <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground uppercase tracking-wide text-xs">Broker</th>
+                <th scope="col" className="hidden px-3 py-2 text-right font-medium text-muted-foreground uppercase tracking-wide text-xs sm:table-cell">Rate limit / min</th>
+                <th scope="col" className="px-3 py-2"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -144,14 +144,20 @@ function BrokersPage() {
                           : "no login attempted yet"}
                     </span>
                   </td>
-                  <td className="px-3 py-2 font-mono">{b.name}</td>
-                  <td className="px-3 py-2 font-mono text-right tabular">{b.rate_limit_per_minute}</td>
-                  <td className="px-3 py-2 text-right space-x-2">
+                  <td className="px-3 py-2 font-mono">
+                    {b.name}
+                    {b.rate_limit_per_minute != null && (
+                      <span className="block text-muted-foreground sm:hidden">{b.rate_limit_per_minute}/min</span>
+                    )}
+                  </td>
+                  <td className="hidden px-3 py-2 font-mono text-right tabular sm:table-cell">{b.rate_limit_per_minute ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap justify-end gap-2">
                     {BROKERS_WITH_CREDENTIALS_UI.has(b.name) && (
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 text-xs"
+                        className="text-xs"
                         onClick={() => setCredentialsFor(b)}
                       >
                         <KeyRound className="size-3" />
@@ -161,22 +167,23 @@ function BrokersPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs"
+                      className="text-xs"
                       disabled={reauth.isPending && reauth.variables === b.name}
                       onClick={() => reauth.mutate(b.name)}
                     >
                       <RefreshCw className={cn("size-3", reauth.isPending && reauth.variables === b.name && "animate-spin")} />
                       Reauth
                     </Button>
+                    </div>
                   </td>
                 </tr>
                 );
               })}
               {q.isLoading && (
-                <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={4} role="status" className="p-6 text-center text-muted-foreground">Loading…</td></tr>
               )}
               {q.error && (
-                <tr><td colSpan={4} className="p-6 text-center text-fail">{(q.error as Error).message}</td></tr>
+                <tr><td colSpan={4} role="alert" className="p-6 text-center text-fail">{(q.error as Error).message}</td></tr>
               )}
             </tbody>
           </table>
@@ -294,7 +301,7 @@ function CredentialsDialog({ broker, onOpenChange }: { broker: Broker | null; on
           <Input
             id={field.key}
             type={field.type ?? "text"}
-            className={cn("font-mono text-xs", isSet && "pr-8")}
+            className={cn("font-mono text-xs", isSet && "pr-10")}
             placeholder={isSet ? (hint ? `ends in ${hint}` : "•".repeat(16)) : field.placeholder}
             value={values[field.key] ?? ""}
             onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
@@ -309,8 +316,10 @@ function CredentialsDialog({ broker, onOpenChange }: { broker: Broker | null; on
           <button
             type="button"
             title={hint ? "Hide hint" : "Show a masked hint of the saved value"}
+            aria-label={hint ? `Hide ${field.label} hint` : `Show masked hint of saved ${field.label}`}
+            aria-pressed={Boolean(hint)}
             className={cn(
-              "absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50",
+              "absolute right-0 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground disabled:opacity-50",
               !isSet && "hidden",
             )}
             disabled={isRevealing}
@@ -367,7 +376,8 @@ function CredentialsDialog({ broker, onOpenChange }: { broker: Broker | null; on
             <>
               <button
                 type="button"
-                className="text-[11px] text-muted-foreground underline underline-offset-2"
+                className="py-1 text-left text-[11px] text-muted-foreground underline underline-offset-2"
+                aria-expanded={showAdvanced}
                 onClick={() => setShowAdvanced((v) => !v)}
               >
                 {showAdvanced ? "Hide" : "Also update"} {advancedFields.map((f) => f.label).join(" / ")} (rarely needed)

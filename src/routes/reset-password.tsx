@@ -59,7 +59,7 @@ function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="min-h-dvh flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm space-y-6">
           <Link to="/" className="flex items-center justify-center gap-1.5 text-sm font-semibold tracking-tight">
             <span className="text-signal">◆</span> Screener
@@ -80,7 +80,7 @@ function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
         <Link to="/" className="flex items-center justify-center gap-1.5 text-sm font-semibold tracking-tight">
           <span className="text-signal">◆</span> Screener
@@ -137,5 +137,5 @@ function ResetPasswordPage() {
 function FieldError({ name, form }: { name: keyof FormValues; form: ReturnType<typeof useForm<FormValues>> }) {
   const msg = form.formState.errors[name]?.message as string | undefined;
   if (!msg) return null;
-  return <p className="text-xs text-fail">{msg}</p>;
+  return <p role="alert" className="text-xs text-fail">{msg}</p>;
 }

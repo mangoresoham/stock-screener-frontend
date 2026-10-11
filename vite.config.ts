@@ -19,4 +19,16 @@ export default defineConfig({
   nitro: {
     preset: "node-server",
   },
+  // The app calls the API at /api on its own origin. In Docker the root compose's nginx
+  // forwards that to the api service; in `bun run dev` Vite's proxy does the same.
+  vite: {
+    server: {
+      proxy: {
+        "/api": {
+          target: "http://127.0.0.1:8000",
+          rewrite: (p: string) => p.replace(/^\/api/, ""),
+        },
+      },
+    },
+  },
 });
