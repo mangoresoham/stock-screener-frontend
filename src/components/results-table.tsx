@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   flexRender,
   getCoreRowModel,
@@ -121,9 +122,18 @@ export function ResultsTable({ rows, mode }: { rows: ResultRow[]; mode: ScreenMo
         id: "Ticker",
         accessorKey: "Ticker",
         header: "Ticker",
-        cell: ({ row }) => (
-          <span className="font-mono font-medium">{String(row.original.Ticker ?? "")}</span>
-        ),
+        cell: ({ row }) => {
+          const ticker = String(row.original.Ticker ?? "");
+          return ticker ? (
+            <Link
+              to="/stocks/$symbol"
+              params={{ symbol: ticker }}
+              className="font-mono font-medium underline-offset-4 hover:text-signal hover:underline"
+            >
+              {ticker}
+            </Link>
+          ) : null;
+        },
       },
       {
         id: "Signal",

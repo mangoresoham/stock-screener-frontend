@@ -19,6 +19,7 @@ import { Route as HelpRouteImport } from './routes/help'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as BrokersRouteImport } from './routes/brokers'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StocksSymbolRouteImport } from './routes/stocks.$symbol'
 import { Route as RunsRunIdRouteImport } from './routes/runs_.$runId'
 
 const UniversesRoute = UniversesRouteImport.update({
@@ -71,6 +72,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StocksSymbolRoute = StocksSymbolRouteImport.update({
+  id: '/stocks/$symbol',
+  path: '/stocks/$symbol',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RunsRunIdRoute = RunsRunIdRouteImport.update({
   id: '/runs_/$runId',
   path: '/runs/$runId',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/universes': typeof UniversesRoute
   '/runs/$runId': typeof RunsRunIdRoute
+  '/stocks/$symbol': typeof StocksSymbolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/universes': typeof UniversesRoute
   '/runs/$runId': typeof RunsRunIdRoute
+  '/stocks/$symbol': typeof StocksSymbolRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/universes': typeof UniversesRoute
   '/runs_/$runId': typeof RunsRunIdRoute
+  '/stocks/$symbol': typeof StocksSymbolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/universes'
     | '/runs/$runId'
+    | '/stocks/$symbol'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/universes'
     | '/runs/$runId'
+    | '/stocks/$symbol'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/universes'
     | '/runs_/$runId'
+    | '/stocks/$symbol'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   UniversesRoute: typeof UniversesRoute
   RunsRunIdRoute: typeof RunsRunIdRoute
+  StocksSymbolRoute: typeof StocksSymbolRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stocks/$symbol': {
+      id: '/stocks/$symbol'
+      path: '/stocks/$symbol'
+      fullPath: '/stocks/$symbol'
+      preLoaderRoute: typeof StocksSymbolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/runs_/$runId': {
       id: '/runs_/$runId'
       path: '/runs/$runId'
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   UniversesRoute: UniversesRoute,
   RunsRunIdRoute: RunsRunIdRoute,
+  StocksSymbolRoute: StocksSymbolRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -74,6 +74,38 @@ export type ResultRow = Record<string, unknown> & {
 // keep this accurate rather than coercing at every call site. Route params (URL segments)
 // are always strings regardless, so `String(run.run_id)` is used wherever one is needed
 // for navigation/display-as-text.
+// One stored daily bar; `date` is the IST trading date (YYYY-MM-DD).
+export interface DailyBar {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+// A registered indicator computed over stored bars: one series per output field
+// (RSI -> "value"; Comparative_RS -> "crs", "crs_sma").
+export interface IndicatorSeries {
+  name: string;
+  period: number;
+  fields: Record<string, { date: string; value: number }[]>;
+}
+
+// A verdict a completed screen run gave one stock, dated to the candle it applies to.
+export interface ScreenSignal {
+  date: string;
+  run_id: number;
+  mode: string;
+  signal: "pass" | "buy" | "watch" | "exit";
+}
+
+export interface HistoryLoadStatus {
+  status: "idle" | "queued" | "running" | "done" | "failed";
+  period: string;
+  error: string | null;
+}
+
 export interface ScreenRun {
   run_id: number;
   status: RunStatus;
@@ -217,6 +249,17 @@ export const api = {
   // structurally guaranteed). No bulk endpoint on the backend; multi-delete just calls
   // this once per selected id (see routes/runs.tsx).
   deleteRun: (runId: number) => request<void>(`/screens/${runId}`, { method: "DELETE" }),
+
+  // Instruments -- stored daily bars only (DB read, never a broker fetch).
+  getDailyBars: (symbol: string) => request<DailyBar[]>(`/instruments/${encodeURIComponent(symbol)}/bars`),
+  // Queues a background fetch of the last 5y of daily bars (stock + NIFTY) from Yahoo.
+  loadHistory: (symbol: string) =>
+    request<HistoryLoadStatus>(`/instruments/${encodeURIComponent(symbol)}/history`, { method: "POST" }),
+  getHistoryStatus: (symbol: string) =>
+    request<HistoryLoadStatus>(`/instruments/${encodeURIComponent(symbol)}/history`),
+  getSignals: (symbol: string) => request<ScreenSignal[]>(`/instruments/${encodeURIComponent(symbol)}/signals`),
+  getIndicator: (symbol: string, name: string) =>
+    request<IndicatorSeries>(`/instruments/${encodeURIComponent(symbol)}/indicators/${encodeURIComponent(name)}`),
 
   // Brokers
   listBrokers: () => request<Broker[]>("/brokers"),
