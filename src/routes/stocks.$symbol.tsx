@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { ChartCandlestick, ChartLine, Flag, History, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChartCandlestick, ChartLine, History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { INDICATOR_LABELS, PriceChart, type ChartType, type IndicatorKey } from "@/components/price-chart";
+import { INDICATOR_LABELS, PriceChart, type ChartType, type IndicatorKey, type Timeframe } from "@/components/price-chart";
 import { api, ApiError } from "@/lib/api";
 import { fmtNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,13 @@ const RANGES = [
 type RangeKey = (typeof RANGES)[number]["key"];
 
 const NO_INDICATOR = "none";
+const NO_SIGNALS = "off";
+// One mode's signals at a time: every mode on one chart was unreadable.
+const SIGNAL_MODES = [
+  { mode: "outperforming", label: "Outperforming" },
+  { mode: "chandemo", label: "Chandemo" },
+  { mode: "custom", label: "Custom" },
+] as const;
 
 // Bar dates are plain IST trading dates ("2026-08-28"): parse and print them as UTC so the
 // viewer's own timezone can never shift one to the neighbouring day.
@@ -53,14 +60,21 @@ function StockPage() {
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [indicator, setIndicator] = useState<IndicatorKey | null>("RSI");
   const [range, setRange] = useState<RangeKey>("6M");
-  const [showSignals, setShowSignals] = useState(true);
+  const [timeframe, setTimeframe] = useState<Timeframe>("1D");
+  const [signalMode, setSignalMode] = useState<string>(NO_SIGNALS);
   const qc = useQueryClient();
   const [historyPolling, setHistoryPolling] = useState(false);
 
-  const barsQ = useQuery({ queryKey: ["bars", ticker], queryFn: () => api.getDailyBars(ticker), staleTime: 5 * 60_000 });
+  const barsQ = useQuery({
+    queryKey: ["bars", ticker, timeframe],
+    queryFn: () => api.getDailyBars(ticker, timeframe),
+    staleTime: 5 * 60_000,
+    placeholderData: (prev) => prev,
+  });
   const indicatorQ = useQuery({
-    queryKey: ["indicator", ticker, indicator],
-    queryFn: () => api.getIndicator(ticker, indicator as IndicatorKey),
+    // Chandemo is always weekly + monthly, whatever the chart's timeframe.
+    queryKey: ["indicator", ticker, indicator, indicator === "Chandemo" ? "W+M" : timeframe],
+    queryFn: () => api.getIndicator(ticker, indicator as IndicatorKey, timeframe),
     enabled: indicator != null && Boolean(barsQ.data?.length),
     staleTime: 5 * 60_000,
   });
@@ -71,7 +85,16 @@ function StockPage() {
     enabled: Boolean(barsQ.data?.length),
     staleTime: 60_000,
   });
-  const signalCount = new Set((signalsQ.data ?? []).map((s) => `${s.date}|${s.mode}|${s.signal}`)).size;
+  const signalCounts = useMemo(() => {
+    const seen = new Map<string, Set<string>>();
+    for (const s of signalsQ.data ?? []) seen.set(s.mode, (seen.get(s.mode) ?? new Set()).add(`${s.date}|${s.signal}`));
+    return new Map([...seen].map(([mode, keys]) => [mode, keys.size]));
+  }, [signalsQ.data]);
+  // Memoised so the chart (which rebuilds when this changes) isn't rebuilt on every render.
+  const modeSignals = useMemo(
+    () => (signalMode === NO_SIGNALS ? undefined : (signalsQ.data ?? []).filter((s) => s.mode === signalMode)),
+    [signalsQ.data, signalMode],
+  );
 
   const loadHistory = useMutation({
     mutationFn: () => api.loadHistory(ticker),
@@ -181,6 +204,24 @@ function StockPage() {
                 ))}
               </div>
 
+              <div role="group" aria-label="Timeframe" className="flex rounded border text-xs">
+                {(["1D", "1W"] as const).map((tf) => (
+                  <button
+                    type="button"
+                    key={tf}
+                    aria-pressed={timeframe === tf}
+                    title={tf === "1D" ? "Daily candles" : "Weekly candles"}
+                    onClick={() => setTimeframe(tf)}
+                    className={cn(
+                      "h-9 w-10 font-mono first:rounded-l last:rounded-r sm:h-8 sm:w-9",
+                      timeframe === tf ? "bg-signal/15 text-signal" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+
               <Select
                 value={indicator ?? NO_INDICATOR}
                 onValueChange={(v) => setIndicator(v === NO_INDICATOR ? null : (v as IndicatorKey))}
@@ -200,20 +241,28 @@ function StockPage() {
                 </SelectContent>
               </Select>
 
-              <button
-                type="button"
-                aria-pressed={showSignals}
-                onClick={() => setShowSignals((v) => !v)}
-                title="Screen signals: arrows/circles where a run passed this stock (click one to open the run)"
-                className={cn(
-                  "flex h-9 items-center gap-1.5 rounded border px-2.5 text-xs sm:h-8",
-                  showSignals ? "border-signal/40 bg-signal/15 text-signal" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Flag aria-hidden className="size-3.5" />
-                Signals
-                <span className="font-mono tabular-nums opacity-70">{signalsQ.isLoading ? "…" : signalCount}</span>
-              </button>
+              <Select value={signalMode} onValueChange={setSignalMode}>
+                <SelectTrigger
+                  aria-label="Screen signals"
+                  title="Mark one screen mode's verdicts on the chart (click a marker to open its run)"
+                  className={cn("h-9 w-[170px] text-xs sm:h-8", signalMode !== NO_SIGNALS && "border-signal/40 text-signal")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_SIGNALS} className="text-xs">
+                    Signals: off
+                  </SelectItem>
+                  {SIGNAL_MODES.map(({ mode, label }) => {
+                    const n = signalCounts.get(mode) ?? 0;
+                    return (
+                      <SelectItem key={mode} value={mode} disabled={n === 0} className="text-xs">
+                        {label} signals ({n})
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
 
               <button
                 type="button"
@@ -250,7 +299,8 @@ function StockPage() {
               chartType={chartType}
               indicator={indicator}
               indicatorData={indicatorQ.data}
-              signals={showSignals ? signalsQ.data : undefined}
+              signals={modeSignals}
+              timeframe={timeframe}
               visibleFrom={visibleFrom}
             />
             {indicatorQ.error && (

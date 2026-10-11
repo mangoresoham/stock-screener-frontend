@@ -90,6 +90,8 @@ export interface IndicatorSeries {
   name: string;
   period: number;
   fields: Record<string, { date: string; value: number }[]>;
+  // Named threshold lines (e.g. Chandemo's watch/buy/exit); empty for most indicators.
+  levels: Record<string, number>;
 }
 
 // A verdict a completed screen run gave one stock, dated to the candle it applies to.
@@ -251,15 +253,19 @@ export const api = {
   deleteRun: (runId: number) => request<void>(`/screens/${runId}`, { method: "DELETE" }),
 
   // Instruments -- stored daily bars only (DB read, never a broker fetch).
-  getDailyBars: (symbol: string) => request<DailyBar[]>(`/instruments/${encodeURIComponent(symbol)}/bars`),
+  // timeframe "1W" = calendar weeks resampled server-side, dated by each week's first trading day.
+  getDailyBars: (symbol: string, timeframe: "1D" | "1W" = "1D") =>
+    request<DailyBar[]>(`/instruments/${encodeURIComponent(symbol)}/bars?timeframe=${timeframe}`),
   // Queues a background fetch of the last 5y of daily bars (stock + NIFTY) from Yahoo.
   loadHistory: (symbol: string) =>
     request<HistoryLoadStatus>(`/instruments/${encodeURIComponent(symbol)}/history`, { method: "POST" }),
   getHistoryStatus: (symbol: string) =>
     request<HistoryLoadStatus>(`/instruments/${encodeURIComponent(symbol)}/history`),
   getSignals: (symbol: string) => request<ScreenSignal[]>(`/instruments/${encodeURIComponent(symbol)}/signals`),
-  getIndicator: (symbol: string, name: string) =>
-    request<IndicatorSeries>(`/instruments/${encodeURIComponent(symbol)}/indicators/${encodeURIComponent(name)}`),
+  getIndicator: (symbol: string, name: string, timeframe: "1D" | "1W" = "1D") =>
+    request<IndicatorSeries>(
+      `/instruments/${encodeURIComponent(symbol)}/indicators/${encodeURIComponent(name)}?timeframe=${timeframe}`,
+    ),
 
   // Brokers
   listBrokers: () => request<Broker[]>("/brokers"),
