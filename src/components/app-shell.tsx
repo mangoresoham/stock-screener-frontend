@@ -13,8 +13,10 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
+import { StockSearch } from "@/components/stock-search";
 
 const nav = [
+  { to: "/dashboard", label: "Dashboard" },
   { to: "/run", label: "Run Screen" },
   { to: "/universes", label: "Universes" },
   { to: "/runs", label: "Past Runs" },
@@ -82,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <header className="sticky top-0 z-40 border-b bg-sidebar/80 backdrop-blur">
         <div className="flex h-11 items-center gap-3 px-3 sm:gap-6 sm:px-4">
-          <Link to="/run" className="font-semibold tracking-tight text-sm shrink-0">
+          <Link to="/dashboard" className="font-semibold tracking-tight text-sm shrink-0">
             <span className="text-signal">◆</span> Screener
           </Link>
 
@@ -109,6 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ml-auto hidden md:flex items-center gap-3">
+            <StockSearch />
             <BrokerStrip brokers={brokers ?? []} />
             <Link
               to="/settings"
@@ -128,8 +131,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           {/* Compact broker dots + hamburger -- mobile/small-tablet only. */}
-          <div className="ml-auto flex md:hidden items-center gap-2">
+          <div className="ml-auto flex md:hidden items-center gap-1">
             <BrokerStrip brokers={brokers ?? []} compact />
+            <StockSearch compact />
             <button
               type="button"
               aria-label="Open menu"

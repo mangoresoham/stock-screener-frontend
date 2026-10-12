@@ -15,6 +15,13 @@ export function fmtNumber(v: unknown, opts: { digits?: number } = {}): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
+// Indicator values span ratios like Comparative RS (~0.05) and oscillators (~50): keep four
+// decimals below 1 so the small ones don't collapse to "0.05"/"0.00".
+export function fmtValue(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return fmtNumber(v, { digits: Math.abs(v) < 1 ? 4 : 2 });
+}
+
 export function fmtCell(v: unknown): string {
   if (v == null || v === "") return "—";
   if (typeof v === "number") return fmtNumber(v);

@@ -33,7 +33,7 @@ function IndexRoute() {
   // someone who's already past that point.
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate({ to: "/run" });
+      navigate({ to: "/dashboard" });
     }
   }, [isLoading, isAuthenticated, navigate]);
 

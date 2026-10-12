@@ -38,7 +38,7 @@ function LoginPage() {
   // the app instead of showing a login form there's no reason to fill in again.
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate({ to: "/run" });
+      navigate({ to: "/dashboard" });
     }
   }, [isLoading, isAuthenticated, navigate]);
 
@@ -51,7 +51,7 @@ function LoginPage() {
     mutationFn: (v: FormValues) => api.login(v.username, v.password),
     onSuccess: async () => {
       await refresh();
-      navigate({ to: "/run" });
+      navigate({ to: "/dashboard" });
     },
     onError: (e) => {
       const msg = e instanceof ApiError ? e.detail : (e as Error).message;

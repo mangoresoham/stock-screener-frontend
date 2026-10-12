@@ -108,6 +108,101 @@ export interface HistoryLoadStatus {
   error: string | null;
 }
 
+// ---- Dashboard / stock history (Phase 7) ----
+export interface RunRef {
+  id: number;
+  mode: string;
+  broker_name: string;
+  universe_id: number;
+  universe_name: string;
+  finished_at: string | null;
+  data_end_at: string;
+}
+
+export interface UniverseRef {
+  id: number;
+  name: string;
+  member_count: number;
+}
+
+export interface ModeSummary {
+  mode: string;
+  run: RunRef | null;
+  previous_run_id: number | null;
+  // evaluated, errors, passed; Chandemo adds buy, watch, exit, new_buy, new_exit;
+  // new_pass / dropped when there's a previous run to compare with.
+  counts: Record<string, number>;
+}
+
+export interface DashboardSummary {
+  universe: UniverseRef | null;
+  universes: UniverseRef[];
+  data: { instruments: number; with_bars: number; latest_bar_date: string | null; stale: number };
+  modes: ModeSummary[];
+}
+
+export type MoverKind = "passed" | "new_pass" | "dropped" | "buy" | "new_buy" | "watch" | "exit" | "new_exit";
+
+export interface Mover {
+  ticker: string;
+  latest_close: number | null;
+  flags: string[];
+  values: Record<string, number>;
+}
+
+export interface MoverList {
+  run: RunRef;
+  kind: MoverKind;
+  compared_to_run_id: number | null;
+  rows: Mover[];
+}
+
+export interface InstrumentHit {
+  symbol: string;
+  name: string | null;
+  exchange: string;
+  last_bar_date: string | null;
+}
+
+export interface TimelineEntry {
+  run_id: number;
+  mode: string;
+  universe: string;
+  run_finished_at: string | null;
+  date: string | null;
+  close: number | null;
+  flags: string[];
+  values: Record<string, number>;
+}
+
+export interface Trade {
+  entry_date: string;
+  entry_price: number;
+  exit_date: string | null;
+  exit_price: number | null;
+  exit_reason: string | null;
+  open: boolean;
+  return_pct: number;
+  holding_days: number;
+  benchmark_return_pct: number | null;
+}
+
+export interface TradeHistory {
+  symbol: string;
+  mode: string;
+  as_of: string;
+  method: string;
+  trades: Trade[];
+  summary: {
+    trades: number;
+    closed: number;
+    wins: number;
+    win_rate: number | null;
+    avg_return_pct: number | null;
+    avg_holding_days: number | null;
+  };
+}
+
 export interface ScreenRun {
   run_id: number;
   status: RunStatus;
@@ -266,6 +361,15 @@ export const api = {
     request<IndicatorSeries>(
       `/instruments/${encodeURIComponent(symbol)}/indicators/${encodeURIComponent(name)}?timeframe=${timeframe}`,
     ),
+
+  // Dashboard / stock history
+  dashboardSummary: (universeId?: number) =>
+    request<DashboardSummary>(`/dashboard/summary${universeId != null ? `?universe_id=${universeId}` : ""}`),
+  movers: (runId: number, kind: MoverKind) => request<MoverList>(`/dashboard/movers?run_id=${runId}&kind=${kind}`),
+  searchInstruments: (q: string) => request<InstrumentHit[]>(`/instruments/search?q=${encodeURIComponent(q)}`),
+  getTimeline: (symbol: string) => request<TimelineEntry[]>(`/instruments/${encodeURIComponent(symbol)}/timeline`),
+  getTrades: (symbol: string, mode: "chandemo" | "outperforming" | "custom") =>
+    request<TradeHistory>(`/instruments/${encodeURIComponent(symbol)}/trades?mode=${mode}`),
 
   // Brokers
   listBrokers: () => request<Broker[]>("/brokers"),

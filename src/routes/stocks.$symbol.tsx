@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FlagsTable, TradesPanel } from "@/components/stock-history";
 import { INDICATOR_LABELS, PriceChart, type ChartType, type IndicatorKey, type Timeframe } from "@/components/price-chart";
 import { api, ApiError } from "@/lib/api";
 import { fmtNumber } from "@/lib/format";
@@ -60,6 +62,7 @@ function StockPage() {
   const [chartType, setChartType] = useState<ChartType>("candles");
   const [indicator, setIndicator] = useState<IndicatorKey | null>("RSI");
   const [range, setRange] = useState<RangeKey>("6M");
+  const [tab, setTab] = useState<"chart" | "flags" | "trades">("chart");
   const [timeframe, setTimeframe] = useState<Timeframe>("1D");
   const [signalMode, setSignalMode] = useState<string>(NO_SIGNALS);
   const qc = useQueryClient();
@@ -141,17 +144,26 @@ function StockPage() {
       {/* Exactly the viewport below the 45px app header, chart filling the rest: the page
           itself never scrolls, so hovering/zooming the chart can't drift the page around.
           The min-height only kicks in on very short windows. */}
-      <div className="mx-auto flex h-[calc(100dvh-2.8125rem)] min-h-[480px] max-w-[1400px] flex-col gap-3 p-4 sm:p-6">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as typeof tab)}
+        className="mx-auto flex h-[calc(100dvh-2.8125rem)] min-h-[480px] max-w-[1400px] flex-col gap-3 p-4 sm:p-6"
+      >
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
           <div>
             <h1 className="font-mono text-lg font-semibold tracking-tight">{ticker}</h1>
             {last && (
               <p className="text-xs text-muted-foreground">
                 NSE · daily · stored data through {fmtDay(last.date)}
-                <span className="hidden sm:inline"> · drag to pan, scroll to zoom</span>
+                {tab === "chart" && <span className="hidden sm:inline"> · drag to pan, scroll to zoom</span>}
               </p>
             )}
           </div>
+          <TabsList className="order-last h-9 sm:order-none">
+            <TabsTrigger value="chart" className="text-xs">Chart</TabsTrigger>
+            <TabsTrigger value="flags" className="text-xs">Flags</TabsTrigger>
+            <TabsTrigger value="trades" className="text-xs">Trades</TabsTrigger>
+          </TabsList>
           {last && (
             <div className="flex items-baseline gap-2 font-mono tabular-nums">
               <span className="text-xl font-semibold">₹{fmtNumber(last.close)}</span>
@@ -166,6 +178,7 @@ function StockPage() {
           )}
         </div>
 
+        <TabsContent value="chart" className="mt-0 flex min-h-0 flex-1 flex-col gap-3 data-[state=inactive]:hidden">
         {barsQ.isLoading && <div role="status" className="text-sm text-muted-foreground">Loading price history…</div>}
         {notFound && (
           <Card className="p-6 text-sm text-muted-foreground">
@@ -310,7 +323,14 @@ function StockPage() {
             )}
           </Card>
         )}
-      </div>
+        </TabsContent>
+        <TabsContent value="flags" className="mt-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden">
+          <FlagsTable symbol={ticker} />
+        </TabsContent>
+        <TabsContent value="trades" className="mt-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden">
+          <TradesPanel symbol={ticker} />
+        </TabsContent>
+      </Tabs>
     </AppShell>
   );
 }

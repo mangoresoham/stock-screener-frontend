@@ -17,6 +17,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BrokersRouteImport } from './routes/brokers'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StocksSymbolRouteImport } from './routes/stocks.$symbol'
@@ -62,6 +63,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BrokersRoute = BrokersRouteImport.update({
   id: '/brokers',
   path: '/brokers',
@@ -86,6 +92,7 @@ const RunsRunIdRoute = RunsRunIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/brokers': typeof BrokersRoute
+  '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/brokers': typeof BrokersRoute
+  '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/brokers': typeof BrokersRoute
+  '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/help': typeof HelpRoute
   '/login': typeof LoginRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/brokers'
+    | '/dashboard'
     | '/forgot-password'
     | '/help'
     | '/login'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/brokers'
+    | '/dashboard'
     | '/forgot-password'
     | '/help'
     | '/login'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/brokers'
+    | '/dashboard'
     | '/forgot-password'
     | '/help'
     | '/login'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrokersRoute: typeof BrokersRoute
+  DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HelpRoute: typeof HelpRoute
   LoginRoute: typeof LoginRoute
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/brokers': {
       id: '/brokers'
       path: '/brokers'
@@ -278,6 +298,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrokersRoute: BrokersRoute,
+  DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HelpRoute: HelpRoute,
   LoginRoute: LoginRoute,

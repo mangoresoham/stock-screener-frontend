@@ -78,3 +78,29 @@ export function CrossoverBadge({ kind }: { kind: "buy" | "exit" }) {
     </span>
   );
 }
+
+// One verdict flag from a run (see the backend's src/api/verdicts.py): Chandemo's
+// BUY/WATCH/EXIT/NONE, other modes' PASS/FAIL, or ERROR.
+const FLAG_STYLE: Record<string, string> = {
+  BUY: "bg-pass/15 text-pass border-pass/40",
+  WATCH: "bg-warn/15 text-warn border-warn/40",
+  EXIT: "bg-fail/10 text-fail border-fail/30",
+  PASS: "bg-signal/15 text-signal border-signal/40",
+  OPEN: "bg-signal/15 text-signal border-signal/40",
+  FAIL: "text-muted-foreground border-border",
+  NONE: "text-muted-foreground border-border",
+  ERROR: "text-fail border-fail/30 border-dashed",
+};
+
+export function FlagBadge({ flag }: { flag: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+        FLAG_STYLE[flag] ?? FLAG_STYLE.NONE,
+      )}
+    >
+      {flag}
+    </span>
+  );
+}
