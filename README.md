@@ -1,4 +1,4 @@
-# 📈 Stock Screener — Frontend
+# Stock Screener — Frontend
 
 The web UI for the **Modular Stock Screener** backend (a separate FastAPI repo) — submit
 screens against NSE/BSE universes, watch them run in the background, and review/export
@@ -8,10 +8,10 @@ backend by design (see the backend's `REQUIREMENTS.md` "Notable decisions" secti
 talking to it purely over REST.
 
 > This repo has no backend of its own — every screen, universe, broker-status, and login call
-> goes to a FastAPI service you run/deploy separately. See [Connecting to the backend](#-connecting-to-the-backend)
+> goes to a FastAPI service you run/deploy separately. See [Connecting to the backend](#connecting-to-the-backend)
 > below before expecting anything to load.
 
-## 🔐 Instance login
+## Instance login
 
 The backend gates the whole app behind a single instance-wide login (one account for the
 whole deployment, not per-user — see the backend's `SessionStatus` docstring). Unauthenticated
@@ -53,7 +53,7 @@ just requests a reset link to whatever recovery address the backend has configur
 All of the above except `/`, `/login`, `/forgot-password`, and `/reset-password` are wrapped
 in `AppShell` and require a valid session.
 
-## 🎛️ Screening modes
+## Screening modes
 
 Fetched live from `GET /screens/modes` (nothing about available modes is hardcoded):
 
@@ -72,7 +72,7 @@ Custom mode's indicator list, default parameters, and available condition fields
 `GET /screens/indicators` — a new indicator added to the backend shows up here with no
 frontend change.
 
-## 🔑 Broker credentials
+## Broker credentials
 
 `/brokers` has a **Credentials** button for Breeze and Angel (Yahoo needs none — its adapter
 never reads the credential store, so showing a form for it would be misleading):
@@ -90,7 +90,7 @@ one calls `GET /brokers/{name}/credentials/{key_name}/reveal` **on click only** 
 masked partial hint (dots plus up to the last 4 characters) — enough to confirm you saved the
 right thing without ever displaying the real value.
 
-## 🗑️ Deleting runs
+## Deleting runs
 
 `/runs` supports per-row and multi-select delete (checkboxes + a "Delete selected" bar). There's
 no bulk-delete endpoint on the backend, so a multi-delete fires one `DELETE /screens/:runId`
@@ -98,7 +98,7 @@ per selected id via `Promise.allSettled`, so one failure doesn't block the rest.
 confirmation dialog is explicit that this only removes the run's metadata and per-ticker
 results — fetched OHLCV/instrument data stays cached and is never touched.
 
-## ⚡ Quick Start
+## Quick Start
 
 **Prerequisites**: [Bun](https://bun.sh) (this repo is `bun.lock`-based, not npm/yarn), the
 backend running somewhere reachable (see its own README for `docker compose up -d --build` or
@@ -113,7 +113,7 @@ Opens on `http://localhost:8080` by default (or whatever port Vite prints). API 
 `/api/*` on the same origin, which Vite's dev proxy forwards to `http://127.0.0.1:8000`
 (change it in `vite.config.ts`).
 
-## 🔧 Connecting to the backend
+## Connecting to the backend
 
 **Default: same origin, nothing to configure.** The browser calls `/api/*` on whatever
 address it loaded the app from, and a reverse proxy forwards that to the backend
@@ -127,14 +127,14 @@ cookie. Anything built into this bundle is readable by anyone who can load the a
 backend's `X-API-Key` bypasses the login — so it is for non-browser callers (CLI/curl/scripts)
 only and must never be baked in here.
 
-## 🧠 What the backend actually does
+## What the backend actually does
 
 Screens run as **background jobs**, not a blocking request: `POST /screens/run` returns
 almost instantly with `status: "queued"`, and this app polls `GET /screens/:runId` until it's
 `completed` or `failed`. There's no synchronous "wait for the result" call — every screen
 submission immediately navigates to the run's detail page, which owns the polling.
 
-## 🐳 Docker
+## Docker
 
 ```sh
 docker build -t stock-screener-frontend .
@@ -146,9 +146,9 @@ Two-stage build: `oven/bun:1` installs deps and runs `bun run build` (Nitro's `n
 preset, set in `vite.config.ts`, emits a standalone Node app at `.output/`), then a plain
 `node:22-alpine` runtime stage runs `.output/server/index.mjs` with no bun/dev deps carried
 over. Listens on `0.0.0.0:3000` inside the container. The `VITE_*` build args are baked into
-the client bundle — see the note in [Connecting to the backend](#-connecting-to-the-backend).
+the client bundle — see the note in [Connecting to the backend](#connecting-to-the-backend).
 
-## 🛠️ Tech stack
+## Tech stack
 
 - **TanStack Start** (React 19 + Vite, file-based routing with SSR) — routes under `src/routes/`
 - **TanStack Query** for all data fetching/polling, **TanStack Table** for the results grid
@@ -169,7 +169,7 @@ bun run preview  # preview the production build locally
 Deployed and synced via Lovable's GitHub two-way sync — changes made in the Lovable editor
 commit here automatically, and pushes to this repo sync back into Lovable. Outside a Lovable
 build, `vite.config.ts` overrides Nitro's default Cloudflare preset with `node-server` so a
-local or Docker build emits a plain Node server instead (see [Docker](#-docker) above).
+local or Docker build emits a plain Node server instead (see [Docker](#docker) above).
 
 ## Credits
 
